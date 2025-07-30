@@ -1,0 +1,5 @@
+.env
+/cxs
+__pycache__
+*.pyc
+*.pyo
