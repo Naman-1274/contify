@@ -4,181 +4,229 @@ BANNED_WORDS = [
 ]
 
 def build_prompt(data: dict) -> str:
-    """Strictly enforce format per real category; guide Gemini with explicit templates."""
+    """Enhanced prompts for human-like, expert marketer quality copy generation."""
 
-    # 1. PMAX (Separate category)
-    if data['category'] == "PMAX":
-        return f"""Write Google Ads (PMAX) creative in this format:
+    # 1. EMAIL SUBJECT LINES - Enhanced for human-like, expert quality
+    if data['category'] == "Email Subject Lines":
+        return f"""You are an expert fashion brand copywriter creating email subject lines that sound completely human and aspirational. Write like the most successful luxury fashion marketers.
 
-    Headlines
-    [5 short, punchy headlines (max 40 characters each); each on its own line, using product, fabric, discount, benefit, festive/occasion, or gift context.]
+Create 8-10 email subject lines in this EXACT format, each separated by a line break:
 
-    Description
-    [5 lines (max 90 chars each): poetic and sensory, mentioning comfort, fit, feel, utility, emotion, discount and festival.]
+Study these reference examples for tone and style:
+- "Made for Moments That Can't Repeat"
+- "Effortless Glamour for Every Occasion — The Wedding Edit by Dolly J"
+- "Introducing Kami, the dresses you'll fall in love with 🌸"
+- "Freesia Dreams for Festive Evenings 💖"
+- "Celebrate Bonds: Up to 10% Off Our Rakhi Collection"
 
-    Long Headlines
-    [2 sentences, each under 120 characters, focused on story or collection/occasion.]
+Your lines should:
+• Mix poetic headlines with product introductions
+• Include the brand/collection name naturally: "{data['product']}"
+• Use emotional storytelling like "Celebrate Bonds" or "Made for Moments"
+• IMPORTANT: If discount is {data['discount']}% and greater than 0, include it naturally in 2-3 subject lines
+• Reference occasion: {data['festival']}
+• Add urgency when relevant: {data['timing']}
+• Use 1-2 emojis ONLY when they enhance the premium feel
+• Sound like something a human brand expert would write, not AI
 
-    Use this structure:
-    Headlines
-    Headline 1
-    Headline 2
-    Headline 3
-    Headline 4
-    Headline 5
+Avoid these words completely: {', '.join(BANNED_WORDS)}
 
-    Description
-    Description 1
-    Description 2
-    Description 3
-    Description 4
-    Description 5
+Create lines that:
+1. Start with aspirational emotion or moment
+2. Introduce collection/product name
+3. Highlight craft or benefit
+4. Connect to occasion or urgency
+5. Mix short punchy lines with longer storytelling ones
 
-    Long Headlines
-    Long Headline 1
-    Long Headline 2
+Each line should feel premium, human, and designed to make someone want to open the email.
 
-    Do not add any sentences before or after these blocks. Use festive and craft cues, and avoid these words: {', '.join(BANNED_WORDS)}.
-    Brand/Product: {data['product']}
-    USP: {data['usp']}
-    Fabric: {data['fabric']}
-    Festival: {data['festival']}
-    discount: {data['discount']}
-    Attributes: {data['attributes']}
-    Please ensure the total copy does not exceed {data['char_limit']} characters.
-    """
-
-    if data['category'] == "Long Content":
-        return f"""Write a premium ad, each line natural and human's daily spoken words only, flowing like a conversation.
-
-    Line 1: Bold headline (occasion, product, or sale) — must stand alone, no brackets or formatting.
-    Line 2: Benefit or feature, use USP, fabric, attribute, or discount, written as a natural sentence that connects to the headline.
-    Line 3: Emotional or gifting/festival connection, written as a continuation (not a list) of the story.
-    Line 4: Urgency or exclusivity—offer or timing, discount, as a continuation.
-    Line 5: Clear call to action: Shop Now!, Shop Soon!, etc.
-    Each line should flow naturally to the next, as if written by a human brand copywriter.
-
-    Inputs to use:
-    Product: {data['product']}
-    USP: {data['usp']}
-    Fabric: {data['fabric']}
-    Attributes: {data['attributes']}
-    discount: {data['discount']}
-    Festival: {data['festival']}
-    Timing/Urgency: {data['timing']}
-
-    Do NOT use: {', '.join(BANNED_WORDS)}.
-
-    just for reference generate new messages each time:
-    Summer Sale
-    Made for Sunny Days
-    Slip into light layers, soft textures, and silhouettes that keep things cool.
-    Your season of easygoing style begins with our summer-ready picks.
-    Shop Now
-
-    Return ONLY the five lines, each on its own line, with no brackets, no bullets, no lists, and no extra formatting.
-    Please keep the total ad copy under {data['char_limit']} characters.
-    """
-
-
-    # 3. Concise Content (short summary version)
-    if data['category'] == "Concise Content":
-        return f"""Write a concise festive ad, 2–3 **natural flowing lines** (total under {data['char_limit']} characters), like something a real person would say to a friend, not a robot. The ad should feel like a compressed, meaningful story that could actually persuade.
-
-    Structure:
-    Line 1: An inviting headline or occasion (festival/sale/product) — must stand alone, stated conversationally.
-    Line 2: The core product benefit—use USP, fabric, comfort or stand-out attribute, discount. Tie this to the context set above, not just a generic product line.
-    Line 3: If a festival or gifting theme is present, weave it in emotionally and naturally—otherwise, use gentle urgency (timing/offer - discount/season). End with a friendly invitation to act (e.g., Shop Now, Treat them, Don’t miss out).
-
-    Base your lines on:
-    Product: {data['product']}
-    USP: {data['usp']}
-    Fabric: {data['fabric']}
-    Attributes: {data['attributes']}
-    discount: {data['discount']}
-    Festival: {data['festival']}
-    Timing/Urgency: {data['timing']}
-
-    **Write as if for a premium brand, but keep the flow and word choices as humans actually speak. Never use: {', '.join(BANNED_WORDS)}.**
-
-    just for reference generate new messages each time, (compressed but natural, not a list):
-    Rakhi ready? Gift your brother our softest, freshest cotton-silk shirts.
-    They’re wrinkle-free, breezy, and made for festive comfort.
-    Limited time only—shop the Raksha Bandhan edit now!
-
-    or :
-    Summer Sale just got sunnier!
-    Light cotton shirts for easy days and better getaways—your next favorite’s waiting.
-    Hurry, special prices won’t last long.
-
-    **Return ONLY the 2–3 ad lines, each on its own line, no bullets or lists. They must read as naturally and smoothly as the examples.**
-    """
-
-    # 4. WhatsApp Broadcast
-    if data['category'] == "WhatsApp Broadcast":
-        return f"""Write a WhatsApp marketing message just like a friendly personal recommendation.
-    • Use 3–4 natural, connected lines—each easily sent as a broadcast, not a list.
-    • Open with a conversational hook about the event or product (emojis allowed, but only where they sound real).
-    • Follow with a benefit or shopping context using the product, fabric, USP, discount, festival, or timing fields—but always connected with simple, human phrasing.
-    • Naturally add a gifting message or special occasion note if applicable—don’t force it as a bullet point.
-    • Sign off warmly with something like: Love, Team {data['product']} (on its own line).
-
-    Use 1–2 emojis if it feels natural—never more and only if they fit the tone.
-    Product: {data['product']}
-    USP: {data['usp']}
-    Fabric: {data['fabric']}
-    Festival: {data['festival']}
-    discount: {data['discount']}
-    Timing/Urgency: {data['timing']}
-
-    just for reference generate new messages each time:
-    Hey, Raksha Bandhan’s here! 🎁
-    Check out our new wrinkle-free cotton shirts—super comfy, perfect for gifting your brother (or just treating yourself).
-    Don’t wait—shop the freshest arrivals now.
-    Love, Team [Brand]
-
-    Or:
-    Sunny days, softer shirts!
-    Cotton & silk blends just landed—easy, breezy, and ready for all your weekend plans ☀️
-    Make Rakhi gifting easy this year.
-    Cheers, Team {data['product']}
-
-    Write each line naturally, as if you’d send it on WhatsApp, not as slogans, not as a list.
-    Never use: {', '.join(BANNED_WORDS)}.
-    OUTPUT: Just the message lines—no extra formatting or summaries.
-    Please make sure the total message is not longer than {data['char_limit']} characters.
-    """
-
-
-    # 5. Email Subject/Emailer (as previous)
-    if data['category'] == "Email Subject":
-        return f"""Compose a marketing email for a premium fashion brand, each line flowing like a personal and using daily spoken language, aspirational message. DO NOT use brackets, bullets, or list formatting—each line must sound human and effortlessly connected, not like a generic summary.
-
-    Line 1: An evocative or poetic headline—set the mood or promise (occasion, feeling, or aspiration).
-    Line 2: The brand, collection, or product name—one clean line, discount, no extra description.
-    Line 3: Benefit, craft, or heritage line—show the special quality or value of the product, discount, using fabric, benefits, or craftsmanship.
-    Line 4: Gifting, story, or festival context—a line that anchors this offer in a real moment (e.g., "a thoughtful gift for festival," or "woven for cherished memories").
-    Line 5: Short, clear CTA ("Shop Now", "Launching Soon", etc.).
-
-    Draw only from these fields:
-    Headline/Theme: {data['usp']}
-    Brand/Collection: {data['product']}
-    Benefit/Craft: {data['attributes']}
-    Fabric: {data['fabric']}
-    discount: {data['discount']}
-    Festival/Event: {data['festival']}
-    Do not exceed {data['char_limit']} characters in total. Each line must build on the last—no abrupt topic jumps or fragments. All phrases must sound like natural, brand-quality daily English. DO NOT use these words anywhere: {', '.join(BANNED_WORDS)}.
-
-    just for reference generate new messages each time (for flow and tone):
-    Couture Meets Culture
-    Gazal Gupta Brides
-    Graceful Silhouettes blending contemporary aesthetics with classic heritage
-    Rooted in craft, layered with meaning—each look is a canvas of memories in the making
-    Shop Now
-
-    Return ONLY the email lines, in order, with no extra formatting or summaries.
-    """
-    
-    # Fallback: Like long content
-    return f"""Write a festive ad in poetic, multi-line format (200–300 characters), honoring line breaks and structure. {data['product']} | {data['usp']} | {data['fabric']} | {data['festival']}. Avoid: {', '.join(BANNED_WORDS)}.
+Write ONLY the subject lines, one per line, and make sure they build emotional flow across multiple ideas. Vary the structure, but keep the human storytelling natural and non-repetitive.
 """
+
+    # 2. PMAX - Enhanced
+    if data['category'] == "PMAX":
+        return f"""Create Google Ads PMAX copy that sounds human and converts. Write like an expert performance marketer who understands premium fashion.
+
+Format EXACTLY as shown:
+
+Headlines
+[Create 5 headlines, each max 30 chars, punchy and human-sounding]
+
+Description  
+[Create 5 descriptions, each max 90 chars, focusing on emotion and benefit]
+
+Long Headlines
+[Create 2 long headlines, each max 120 chars, more descriptive and story-driven]
+
+Use these inputs naturally:
+• Product: {data['product']}
+• Key benefit: {data['usp']}
+• Materials: {data['fabric']}
+• Occasion: {data['festival']}
+• Discount: {data['discount']}% (if {data['discount']} > 0)
+• Emotional hook: {data.get('emotion', 'Premium quality')}
+
+Write headlines that:
+- Sound conversational, not robotic
+- Focus on outcomes and feelings
+- Include specific product benefits
+- IMPORTANT: If discount is {data['discount']}% (greater than 0), include it in 2-3 headlines
+- Create urgency when appropriate
+- Feel premium but approachable
+
+Never use: {', '.join(BANNED_WORDS)}
+
+Example style (don't copy exactly):
+Headlines
+Perfect for special moments
+Premium comfort collection
+Festival ready styles
+Up to 20% off today
+Handcrafted with love
+
+Write in the exact format shown above."""
+
+    # 3. LONG CONTENT - Enhanced for storytelling
+    if data['category'] == "Long Content":
+        return f"""Write premium fashion ad copy that tells a story like an expert brand copywriter. Each line should flow naturally into the next, creating an emotional journey.
+
+Create exactly 5 lines that flow like this:
+
+Line 1: An aspirational headline that captures a moment or feeling
+Line 2: Introduce the product/collection with its key benefit
+Line 3: Highlight the craft, material, or special quality that makes it premium
+Line 4: Connect to the occasion or create gentle urgency with the offer
+Line 5: Warm, inviting call-to-action
+
+Use these elements naturally:
+• Brand/Product: {data['product']}
+• Core promise: {data['usp']}
+• Premium materials: {data['fabric']}
+• Special qualities: {data['attributes']}
+• Occasion: {data['festival']}
+• Offer: {data['discount']}% off (if {data['discount']} > 0) (if {data['discount']} > 0) (if {data['discount']} > 0)
+• Timing: {data['timing']}
+• Emotional hook: {data['emotion']}
+
+Write like these examples (for style reference only):
+Summer Sale
+Made for Sunny Days  
+Slip into light layers, soft textures, and silhouettes that keep things cool
+Your season of easygoing style begins with our summer-ready picks
+Shop Now
+
+OR:
+
+Raksha Bandhan Ready
+The Premium Collection
+Crafted in premium materials for comfort that lasts through every celebration
+Perfect for gifting the ones who matter most
+Shop the festive edit now
+
+Each line should:
+- Sound completely natural and human
+- Build emotional connection
+- Feel premium but warm
+- Flow seamlessly to the next line
+- IMPORTANT: If discount is {data['discount']}% (greater than 0), include it naturally in line 4
+- End with a clear but friendly action
+
+Never use: {', '.join(BANNED_WORDS)}
+Keep under {data['char_limit']} characters total.
+
+Write ONLY the 5 lines, no bullets or formatting:"""
+
+    # 4. CONCISE CONTENT - Enhanced
+    if data['category'] == "Concise Content":
+        return f"""Write a short, impactful fashion ad that sounds like expert human copywriting. Create 2-3 lines that pack maximum emotional punch in minimum words.
+
+Structure:
+Line 1: Emotional hook or occasion-based opener
+Line 2: Product benefit with premium positioning  
+Line 3: Gentle urgency with warm call-to-action
+
+Use naturally:
+• Product: {data['product']}
+• Key benefit: {data['usp']}
+• Materials: {data['fabric']}
+• Occasion: {data['festival']}
+• Offer: {data['discount']}% off
+• Timing: {data['timing']}
+• Emotion: {data['emotion']}
+
+Examples of the human style to match:
+Rakhi ready? Gift your brother our softest, freshest cotton-silk shirts.
+They're wrinkle-free, breezy, and made for festive comfort.
+Limited time only—shop the Raksha Bandhan edit now!
+
+OR:
+
+Weekend mood: effortless style
+Introducing premium comfort - sophistication in every stitch
+Don't wait, these won't last long
+
+Write copy that:
+- Sounds conversational and warm
+- Builds desire quickly
+- Feels premium but accessible
+- IMPORTANT: If discount is {data['discount']}% (greater than 0), include it naturally
+- Creates gentle urgency
+- Ends with clear next step
+
+Never use: {', '.join(BANNED_WORDS)}
+Keep under {data['char_limit']} characters.
+
+Write ONLY the 2-3 lines, no formatting:"""
+
+    # 5. WHATSAPP BROADCAST - Enhanced for personal feel
+    if data['category'] == "WhatsApp Broadcast":
+        return f"""Write a WhatsApp message that feels like a personal recommendation from a stylish friend, not a brand broadcast.
+
+Create 3-4 lines that feel warm and personal:
+
+Line 1: Friendly opener with occasion/excitement (1 emoji max)
+Line 2: Product recommendation with personal touch
+Line 3: Why it's special (benefit/craft/occasion fit)
+Line 4: Sign off with brand warmth
+
+Use these elements naturally:
+• Product: {data['product']}
+• Why it's special: {data['usp']}
+• Materials: {data['fabric']}
+• Occasion: {data['festival']}
+• Offer: {data['discount']}% off
+• Personal emotion: {data.get('emotion', 'Premium quality')}
+
+Example style (don't copy):
+Hey, Raksha Bandhan's here! 🎁
+Just saw the new collection and had to share - they're absolutely beautiful
+The materials feel amazing and they're perfect for gifting (or keeping for yourself!)
+Love, Team [Brand Name]
+
+Write like you're texting a friend who loves fashion:
+- Use "you" and "your" naturally
+- Share excitement genuinely  
+- Mention specific benefits they'd care about
+- IMPORTANT: If discount is {data['discount']}% (greater than 0), mention it naturally
+- Add one emoji only if it feels natural
+- Sign off warmly with team name
+
+Never use: {', '.join(BANNED_WORDS)}
+Keep under {data['char_limit']} characters.
+
+Write ONLY the message lines, no extra formatting:"""
+    
+    # Fallback for any other category
+    return f"""Write premium fashion copy that sounds completely human and expert-crafted. 
+
+Use: {data['product']} | {data['usp']} | {data['fabric']} | {data['festival']} | {data['discount']}% off | {data.get('emotion', 'Premium quality')}
+
+Create copy that:
+- Sounds like an expert marketer wrote it
+- Builds emotional connection
+- Feels premium but warm
+- Includes clear value proposition
+- Ends with compelling action
+
+Never use: {', '.join(BANNED_WORDS)}
+Keep under {data['char_limit']} characters."""
