@@ -84,10 +84,12 @@ with st.sidebar:
         )
         
         fabric = st.multiselect(
-            "Fabric Type",
-            ["Cotton", "Linen", "Silk", "Polyester", "Blend", "Denim", "Chiffon", "Georgette"],
-            help="Select all applicable fabric types"
-        )
+        "Fabric Type",
+        ["Cotton", "Linen", "Silk", "Chanderi", "Banarasi Silk", "Tussar Silk", "Organza", "Georgette", "Crepe", "Velvet", "Satin", "Muslin", "Brocade", "Raw Silk", "Moonga Silk", "Net", "Tissue", "Mulberry Silk", "Khadi", "Dupion Silk", "Chiffon", "Denim", "Rayon", "Polyester", "Blend"
+        ],
+        help="Select all applicable fabric types"
+    )
+
         
     # Content Settings Section
     with st.expander("⚙️ Content Settings", expanded=True):
