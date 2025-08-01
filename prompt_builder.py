@@ -28,6 +28,7 @@ Your lines should:
 • Add urgency when relevant: {data['timing']}
 • Use 1-2 emojis ONLY when they enhance the premium feel
 • Sound like something a human brand expert would write, not AI
+• Keep each line under {data['char_limit']} characters
 
 Avoid these words completely: {', '.join(BANNED_WORDS)}
 
@@ -43,20 +44,24 @@ Each line should feel premium, human, and designed to make someone want to open 
 Write ONLY the subject lines, one per line, and make sure they build emotional flow across multiple ideas. Vary the structure, but keep the human storytelling natural and non-repetitive.
 """
 
-    # 2. PMAX - Enhanced
+    # 2. PMAX - Enhanced with specific character limits
     if data['category'] == "PMAX":
+        headline_limit = data['char_limit']['headlines']
+        description_limit = data['char_limit']['description']
+        long_headline_limit = data['char_limit']['long_headlines']
+        
         return f"""Create Google Ads PMAX copy that sounds human and converts. Write like an expert performance marketer who understands premium fashion.
 
 Format EXACTLY as shown:
 
-Headlines
-[Create 5 headlines, each max 30 chars, punchy and human-sounding]
+Headlines (max {headline_limit} characters each)
+[Create 5 headlines, each max {headline_limit} chars, punchy and human-sounding]
 
-Description  
-[Create 5 descriptions, each max 90 chars, focusing on emotion and benefit]
+Description (max {description_limit} characters each)
+[Create 5 descriptions, each max {description_limit} chars, focusing on emotion and benefit]
 
-Long Headlines
-[Create 2 long headlines, each max 120 chars, more descriptive and story-driven]
+Long Headlines (max {long_headline_limit} characters each)
+[Create 2 long headlines, each max {long_headline_limit} chars, more descriptive and story-driven]
 
 Use these inputs naturally:
 • Product: {data['product']}
@@ -84,7 +89,7 @@ Festival ready styles
 Up to 20% off today
 Handcrafted with love
 
-Write in the exact format shown above."""
+Write in the exact format shown above with strict character limits."""
 
     # 3. LONG CONTENT - Enhanced for storytelling
     if data['category'] == "Long Content":

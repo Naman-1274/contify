@@ -4,14 +4,11 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from prompt_builder import build_prompt, BANNED_WORDS
 
-# ─── Load environment variables ────────────────────────────────
 load_dotenv()
 
-# ─── Speed-optimized Gemini setup ──────────────────────────────
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-# ─── Page Configuration & Minimal CSS ─────────────────────────
 st.set_page_config(
     page_title="AI Ad Text Generator", 
     page_icon="🛍️", 
@@ -19,7 +16,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS for better visual appeal
 st.markdown("""
 <style>
     .main-title {
@@ -77,322 +73,407 @@ st.markdown("""
         margin: 2rem 0;
         box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
+    
+    .mode-selector {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Main Title ──────────────────────────────────────────────────
+GARMENT_TYPES = [
+    "Anarkali Palazzo Set", "Anarkali Set", "Angrakha", "Belt", "Bhanvara", "Blazer", 
+    "Blazer Set", "Cap", "Choga", "Choga Set", "Co-Ord Set", "Cushion Cover", 
+    "Dhoti Set", "Dress", "Dupatta", "Gharara Set", "Gift", "Jacket", "Kaftan", 
+    "Kaftan Set", "Kurta", "Kurta Gharara Set", "Kurta Palazzo Set", "Kurta Salwar Set", 
+    "Kurta Set", "Kurta Sharara Set", "Lehenga Set", "Lounge Wear", "Only Shawl", 
+    "Palazzo", "Palazzo Set", "Pant", "Potli", "Quilt", "Salwar", "Saree Set", 
+    "Scarf", "Set of 2", "Sharara Set", "Shawl", "Shirt", "Shirt Kurta Set", 
+    "Shirt Set", "Skirt Set", "Suit Set", "Tops/Skirts", "Tote Bag"
+]
+
+FESTIVALS_OCCASIONS = [
+    "Diwali", "Holi", "Raksha Bandhan", "Karva Chauth", "Navratri", "Durga Puja", 
+    "Eid", "Christmas", "New Year", "Valentine's Day", "Mother's Day", "Father's Day",
+    "Wedding Season", "Festive Season", "Summer Collection", "Winter Collection",
+    "Monsoon Special", "Black Friday", "Cyber Monday", "EOSS (End of Season Sale)",
+    "New Launch", "Anniversary Sale", "Flash Sale", "Pre-Diwali Sale", "Post-Diwali Sale",
+    "Republic Day", "Independence Day", "Women's Day", "Friendship Day"
+]
+
+FABRIC_TYPES = [
+    "Cotton", "Linen", "Silk", "Chanderi", "Banarasi Silk", "Tussar Silk", 
+    "Organza", "Georgette", "Crepe", "Velvet", "Satin", "Muslin", "Brocade", 
+    "Raw Silk", "Moonga Silk", "Net", "Tissue", "Mulberry Silk", "Khadi", 
+    "Dupion Silk", "Chiffon", "Denim", "Rayon", "Polyester", "Blend",
+    "Modal", "Bamboo", "Handloom", "Kota Cotton", "Malkha Cotton", "Organic Cotton",
+    "Jamdani", "Ikat", "Kalamkari", "Block Print", "Hand Embroidered", "Machine Embroidered"
+]
+
 st.markdown('<h1 class="main-title">🛍️ AI Ad Text Generator</h1>', unsafe_allow_html=True)
 st.markdown("### Create human-like, expert marketer quality ad copy")
 
-# ─── Sidebar Input Panel ────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## 📝 Input Configuration")
-    
-    # Product Information Section
-    with st.expander("🏷️ Product Information", expanded=True):
-        product = st.text_input(
-            "Product / Brand Name", 
-            placeholder="e.g., Dolly J Wedding Edit, Safaa Festive Collection",
-            help="Enter your brand or product collection name"
-        )
-        
-        usp = st.text_input(
-            "Unique Selling Point", 
-            placeholder="e.g., Effortless Glamour, Made for Moments",
-            help="What's your brand's core promise or unique angle?"
-        )
-        
-        attributes = st.text_area(
-            "Product Attributes", 
-            placeholder="e.g., Handcrafted details, Premium comfort, Wedding-ready",
-            help="Key features and benefits that matter to customers",
-            height=100
-        )
-        
-        fabric = st.multiselect(
-            "Fabric Type",
-            ["Cotton", "Linen", "Silk", "Chanderi", "Banarasi Silk", "Tussar Silk", 
-             "Organza", "Georgette", "Crepe", "Velvet", "Satin", "Muslin", "Brocade", 
-             "Raw Silk", "Moonga Silk", "Net", "Tissue", "Mulberry Silk", "Khadi", 
-             "Dupion Silk", "Chiffon", "Denim", "Rayon", "Polyester", "Blend"],
-            help="Select all applicable fabric types"
-        )
+st.markdown('<div class="mode-selector">', unsafe_allow_html=True)
+st.markdown("### Select Your Mode")
 
-        emotion = st.text_input(
-            "Emotional Hook", 
-            placeholder="e.g., Celebrate Bonds, Sisterhood & Style, Festive Joy",
-            help="What emotion should the copy evoke?"
-        )
-           
+mode = st.radio(
+    "Choose your generation mode:",
+    ["🎯 Easy Mode - Quick Setup", "⚙️ Flexible Mode - Full Control"],
+    horizontal=True,
+    help="Easy Mode: Pre-defined options | Flexible Mode: Full customization"
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+if mode == "🎯 Easy Mode - Quick Setup":
+    
+    with st.sidebar:
+        st.markdown("## 🎯 Easy Mode Setup")
         
-        
-    # Content Settings Section
-    with st.expander("⚙️ Content Settings", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            category = st.selectbox(
-                "Content Type",
-                ["Email Subject Lines", "Long Content", "Concise Content", "PMAX", "WhatsApp Broadcast"],
-                help="Choose the format for your ad copy"
+        # Product Selection
+        with st.expander("🏷️ Product Details", expanded=True):
+            garment_type = st.selectbox(
+                "Garment Type",
+                GARMENT_TYPES,
+                help="Choose your product type"
+            )
+            
+            brand_name = st.text_input(
+                "Brand Name", 
+                placeholder="e.g., Dolly J, Safaa, Kaveri",
+                help="Enter your brand name"
+            )
+            
+            usp_easy = st.text_input(
+                "Unique Selling Point", 
+                placeholder="e.g., Effortless Glamour, Made for Moments",
+                help="Enter your brand's key promise"
             )
         
-        with col2:
-            tone = st.selectbox(
+
+        with st.expander("🎨 Style Details", expanded=True):
+            fabric_easy = st.multiselect(
+                "Fabric Type",
+                FABRIC_TYPES[:10], 
+                help="Select fabric types"
+            )
+            
+            festival_easy = st.selectbox(
+                "Occasion",
+                FESTIVALS_OCCASIONS,
+                help="Choose occasion"
+            )
+        
+
+        with st.expander("⚙️ Campaign Settings", expanded=True):
+            category_easy = st.selectbox(
+                "Content Type",
+                ["Email Subject Lines", "Long Content", "Concise Content", "PMAX", "WhatsApp Broadcast"],
+                help="Choose format"
+            )
+            
+            tone_easy = st.selectbox(
                 "Brand Voice",
                 ["Premium & Aspirational", "Warm & Personal", "Playful & Fun", 
                  "Sophisticated", "Friendly & Approachable", "Luxury & Exclusive"],
-                help="Select the tone that matches your brand personality"
+                help="Select tone"
             )
-    
-    # Marketing Details Section
-    with st.expander("🎯 Marketing Details", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            discount = st.number_input(
+            
+            discount_easy = st.number_input(
                 "Discount %", 
                 min_value=0, 
                 max_value=100, 
                 step=5,
                 value=0,
-                help="Discount percentage (0 for no discount)"
+                help="Discount percentage"
             )
-        
-        with col2:
-            category_char_defaults = {
-                "PMAX": 800,
-                "Long Content": 450,
-                "Concise Content": 150,
-                "WhatsApp Broadcast": 300,
-                "Email Subject Lines": 400
-            }
-            
-            char_limit = st.slider(
-                "Character Limit",
-                min_value=50, max_value=1000,
-                value=category_char_defaults.get(category, 400),
-                help=f"Suggested: {category_char_defaults.get(category, 400)}"
-            )
-        
-        festival = st.text_input(
-            "Festival / Occasion", 
-            placeholder="e.g., Raksha Bandhan, Wedding Season, Diwali",
-            help="Seasonal context or special occasion"
-        )
-        
-        timing = st.text_input(
-            "Urgency Element", 
-            placeholder="e.g., 48 Hours Left, Flash Sale, Limited Edition",
-            help="Create urgency or scarcity"
-        )
-        
-        st.markdown("---")
-    
-    # Generate Button
-    generate_btn = st.button("✨ Generate Expert Copy", type="primary", use_container_width=True)
-    
-    # Enhanced Tips
-    with st.expander("💡 Pro Tips for Better Copy"):
-        st.markdown("""
-        **🎯 For Premium Results:**
-        - Use specific brand names (e.g., "Dolly J" vs "dress")
-        - Include emotional hooks ("Celebrate Bonds")
-        - Mention craftsmanship details
-        - Reference specific occasions
-        
-        **📝 Email Subject Lines:**
-        - Focus on aspirational headlines
-        - Include collection names
-        - Add emotional storytelling
-        - Use premium language
-        """)
 
-# ─── Enhanced Generation Logic ──────────────────────────────────
-if generate_btn:
-    if not product:
-        st.error("⚠️ Product/Brand name is required to generate ad copy.")
-        st.stop()
+            if category_easy == "PMAX":
+                char_limit_easy = {
+                    'headlines': 30,
+                    'description': 90,
+                    'long_headlines': 90
+                }
+                st.info("PMAX: Headlines=30, Description=90, Long Headlines=90")
+            else:
+                char_limit_easy = st.selectbox(
+                    "Character Limit",
+                    [30, 50, 70, 90, 120],
+                    index=1,  # Default to 50
+                    help="Select character limit"
+                )
 
-    # Prepare enhanced data with better defaults
-    data = {
-        'category': category,
-        'tone': tone,
-        'product': product,
-        'usp': usp or "Premium Quality",
-        'attributes': attributes or "Expertly crafted",
-        'fabric': ", ".join(fabric) if fabric else "Premium materials",
-        'festival': festival or "Special occasion",
-        'discount': discount,
-        'timing': timing or "Limited time",
-        'char_limit': char_limit,
-        'emotion': emotion or "Exclusive luxury"
-    }
+        generate_btn_easy = st.button("✨ Generate Copy (Easy Mode)", type="primary")
 
-    # Build enhanced prompt
-    prompt = build_prompt(data)
-    
-    # Define improve_flow before usage
-    def improve_flow(text):
-        lines = [line.strip().capitalize() for line in text.strip().split("\n") if line.strip()]
-        polished_lines = []
-
-        for i, line in enumerate(lines):
-            # Remove repeated product mentions
-            if i > 0 and any(line.lower().startswith(start) for start in ["introducing", "presenting", "meet"]):
-                continue
-            # Ensure emotional hook doesn't feel robotic
-            if i == 0 and any(line.lower().startswith(w) for w in ["exclusive", "special", "discount"]):
-                line = line.replace("exclusive", "crafted for").replace("special", "celebrating")
-            polished_lines.append(line)
-
-        return "\n".join(polished_lines)
-
-    # Generate with enhanced error handling
-    with st.spinner("✨ Crafting your expert ad copy..."):
-        try:
-            # Generate content with error handling
-            response = model.generate_content(prompt)
-            copy = response.text.strip()
-            copy = improve_flow(copy)
-            
-        except Exception as e:
-            st.error(f"❌ Generation Error: {e}")
+    if generate_btn_easy:
+        if not brand_name or not garment_type:
+            st.error("⚠️ Please fill Brand Name and Garment Type")
             st.stop()
 
-    # Enhanced post-processing
-    if len(copy) > char_limit and category not in ["Long Content", "Email Subject Lines"]:
-        # Smart truncation that preserves word boundaries
-        copy = copy[:char_limit].rsplit(' ', 1)[0] + "..."
-    
-    # Simple banned word replacement
-    for word in BANNED_WORDS:
-        if word.lower() in copy.lower():
-            copy = copy.replace(word, "")
+        product_name = f"{brand_name} {garment_type}"
+        data_easy = {
+            'category': category_easy,
+            'tone': tone_easy, 
+            'product': product_name,
+            'usp': usp_easy or "Premium Quality",
+            'attributes': "Expertly crafted",
+            'fabric': ", ".join(fabric_easy) if fabric_easy else "Premium materials",
+            'festival': festival_easy,
+            'discount': discount_easy,
+            'timing': "Limited time",
+            'char_limit': char_limit_easy,
+            'emotion': "Special moments"
+        }
 
-    # ─── Enhanced Display ──────────────────────────────────────
-    st.markdown("---")
-    
-    # Metrics row
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown(f'<div class="metric-card"><b>{category}</b><br><small>{tone}</small></div>', 
-                   unsafe_allow_html=True)
-    with col2:
-        char_color = "green" if len(copy) <= char_limit else "orange"
-        st.markdown(f'<div class="metric-card" style="color: {char_color}"><b>{len(copy)} chars</b><br><small>Limit: {char_limit}</small></div>', 
-                   unsafe_allow_html=True)
-    with col3:
-        if discount > 0:
-            st.markdown(f'<div class="metric-card"><b>{discount}% OFF</b><br><small>Discount</small></div>', 
-                       unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="metric-card"><b>No Discount</b><br><small>Regular Price</small></div>', 
-                       unsafe_allow_html=True)
-    with col4:
-        words = len(copy.split())
-        st.markdown(f'<div class="metric-card"><b>{words} words</b><br><small>Word count</small></div>', 
-                   unsafe_allow_html=True)
-
-    # Display generated copy with enhanced styling
-    st.markdown("### 🎯 Generated Copy")
-    st.markdown(f'<div class="result-container">{copy}</div>', unsafe_allow_html=True)
-    
-    # Copy code block for easy copying
-    st.code(copy, language=None)
-    
-    # Action buttons
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🔄 Generate Another Version", use_container_width=True):
-            st.rerun()
-    
-    with col2:
-        st.download_button(
-            "📥 Download Copy",
-            copy,
-            file_name=f"{product.replace(' ', '_')}_{category.replace(' ', '_')}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-    
-    with col3:
-        # Copy to clipboard functionality
-        st.button("📋 Copy to Clipboard", use_container_width=True, 
-                 help="Click to copy the generated text")
-
-    # Performance feedback
-    st.markdown("---")
-    st.markdown("### 📊 Quick Analysis")
-    
-    analysis_col1, analysis_col2 = st.columns(2)
-    
-    with analysis_col1:
-        # Simple readability check
-        sentences = copy.count('.') + copy.count('!') + copy.count('?')
-        if sentences > 0:
-            avg_sentence_length = len(copy.split()) / sentences
-            readability = "Easy" if avg_sentence_length < 15 else "Moderate" if avg_sentence_length < 25 else "Complex"
-            st.write(f"**Readability:** {readability}")
+        prompt_easy = build_prompt(data_easy)
         
-        # Emotional words check
-        emotional_words = ["love", "celebrate", "joy", "beautiful", "perfect", "amazing", "stunning"]
-        emotion_count = sum(1 for word in emotional_words if word.lower() in copy.lower())
-        st.write(f"**Emotional Appeal:** {emotion_count}/7")
-    
-    with analysis_col2:
-        # Call-to-action check
-        cta_words = ["shop", "buy", "get", "order", "discover", "explore"]
-        has_cta = any(word.lower() in copy.lower() for word in cta_words)
-        st.write(f"**Call-to-Action:** {'✅ Present' if has_cta else '❌ Missing'}")
-        
-        # Brand mention check
-        has_brand = product.lower() in copy.lower()
-        st.write(f"**Brand Mention:** {'✅ Included' if has_brand else '⚠️ Consider adding'}")
+        with st.spinner("✨ Generating..."):
+            try:
+                response = model.generate_content(prompt_easy)
+                copy_easy = response.text.strip()
+                
+                # FIXED CHARACTER LIMIT ENFORCEMENT
+                if category_easy != "PMAX" and category_easy not in ["Email Subject Lines", "Long Content"]:
+                    if len(copy_easy) > char_limit_easy:
+                        # Hard truncate at character limit
+                        copy_easy = copy_easy[:char_limit_easy-3] + "..."
+                        st.warning(f"⚠️ Copy truncated to {char_limit_easy} characters")
+                
+                # Remove banned words
+                for word in BANNED_WORDS:
+                    copy_easy = copy_easy.replace(word, "").replace(word.capitalize(), "")
+                
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+                st.stop()
 
-else:
-    # Enhanced welcome screen
-    st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
+        # Display Results
+        st.markdown("---")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(f'<div class="metric-card"><b>{category_easy}</b></div>', unsafe_allow_html=True)
+        with col2:
+            if category_easy == "PMAX":
+                st.markdown('<div class="metric-card"><b>PMAX Format</b></div>', unsafe_allow_html=True)  
+            else:
+                char_color = "green" if len(copy_easy) <= char_limit_easy else "red"
+                st.markdown(f'<div class="metric-card" style="color: {char_color}"><b>{len(copy_easy)} chars</b><br><small>Limit: {char_limit_easy}</small></div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown(f'<div class="metric-card"><b>{discount_easy}% OFF</b></div>', unsafe_allow_html=True)
+        with col4:
+            st.markdown(f'<div class="metric-card"><b>{len(copy_easy.split())} words</b></div>', unsafe_allow_html=True)
+
+        st.markdown("### 🎯 Generated Copy")
+        st.markdown(f'<div class="result-container">{copy_easy}</div>', unsafe_allow_html=True)
+        st.code(copy_easy)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Generate Another", use_container_width=True):
+                st.rerun()
+        with col2:
+            st.download_button("📥 Download", copy_easy, f"{product_name}.txt", use_container_width=True)
+
+    else:
+        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
         st.markdown("""
-        ## 👋 Welcome to Expert Ad Copy Generator
+        ## 🎯 Easy Mode - Quick & Simple
         
-        ### ✨ What Makes This Different?
+        **Perfect for beginners:**
+        ✅ Pre-loaded garment types and occasions  
+        ✅ Simplified fabric selection  
+        ✅ Guided setup process  
+        ✅ Same expert quality output  
         
-        - **Human-like Writing:** Copy that sounds like an expert marketer wrote it
-        - **Brand Voice Matching:** Maintains your premium brand personality  
-        - **Format Expertise:** Specialized templates for each content type
-        - **Emotional Intelligence:** Incorporates feelings and aspirations
+        **Just fill the sidebar and generate!**
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# ─── FLEXIBLE MODE ────────────────────────────────────────────
+elif mode == "⚙️ Flexible Mode - Full Control":
     
-# ─── Enhanced Footer ────────────────────────────────────────────
-    st.markdown('</div>', unsafe_allow_html=True)
-def improve_flow(text):
-    lines = [line.strip().capitalize() for line in text.strip().split("\n") if line.strip()]
-    polished_lines = []
+    with st.sidebar:
+        st.markdown("## ⚙️ Flexible Mode")
+        
+        # Product Information
+        with st.expander("🏷️ Product Information", expanded=True):
+            product = st.text_input(
+                "Product/Brand Name", 
+                placeholder="e.g., Dolly J Wedding Collection",
+                help="Enter your brand or product name"
+            )
+            
+            usp = st.text_input(
+                "Unique Selling Point", 
+                placeholder="e.g., Effortless Glamour, Made for Moments",
+                help="Your brand's core promise"
+            )
+            
+            attributes = st.text_area(
+                "Product Attributes", 
+                placeholder="e.g., Handcrafted, Premium comfort, Wedding-ready",
+                help="Key features and benefits",
+                height=80
+            )
+            
+            fabric = st.multiselect(
+                "Fabric Types",
+                FABRIC_TYPES,
+                help="Select all applicable fabrics"
+            )
 
-    for i, line in enumerate(lines):
-        # Remove repeated product mentions
-        if i > 0 and any(line.lower().startswith(start) for start in ["introducing", "presenting", "meet"]):
-            continue
-        # Ensure emotional hook doesn't feel robotic
-        if i == 0 and any(line.lower().startswith(w) for w in ["exclusive", "special", "discount"]):
-            line = line.replace("exclusive", "crafted for").replace("special", "celebrating")
-        polished_lines.append(line)
+            emotion = st.text_input(
+                "Emotional Hook", 
+                placeholder="e.g., Celebrate Bonds, Festive Joy",
+                help="Emotion to evoke"
+            )
+        
+        # Content Settings
+        with st.expander("⚙️ Content Settings", expanded=True):
+            category = st.selectbox(
+                "Content Type",
+                ["Email Subject Lines", "Long Content", "Concise Content", "PMAX", "WhatsApp Broadcast"],
+                help="Choose format"
+            )
+            
+            tone = st.selectbox(
+                "Brand Voice",
+                ["Premium & Aspirational", "Warm & Personal", "Playful & Fun", 
+                 "Sophisticated", "Friendly & Approachable", "Luxury & Exclusive"],
+                help="Select tone"
+            )
+        
+        # Marketing Details
+        with st.expander("🎯 Marketing Details", expanded=True):
+            discount = st.number_input(
+                "Discount %", 
+                min_value=0, 
+                max_value=100, 
+                step=5,
+                value=0
+            )
+            
+            # FIXED CHARACTER LIMIT LOGIC
+            if category == "PMAX":
+                char_limit = {
+                    'headlines': 30,
+                    'description': 90,
+                    'long_headlines': 90
+                }
+                st.info("PMAX: Headlines=30, Description=90, Long Headlines=90")
+            else:
+                char_limit = st.selectbox(
+                    "Character Limit",
+                    [30, 50, 70, 90, 120],
+                    index=1,  # Default to 50
+                    help="Select character limit"
+                )
+            
+            festival = st.text_input(
+                "Festival/Occasion", 
+                placeholder="e.g., Raksha Bandhan, Wedding Season",
+                help="Seasonal context"
+            )
+            
+            timing = st.text_input(
+                "Urgency Element", 
+                placeholder="e.g., 48 Hours Left, Flash Sale",
+                help="Create urgency"
+            )
+        
+        # Generate Button
+        generate_btn = st.button("✨ Generate Copy (Flexible Mode)", type="primary")
+    
+    # Flexible Mode Generation
+    if generate_btn:
+        if not product:
+            st.error("⚠️ Product/Brand name is required")
+            st.stop()
 
-    return "\n".join(polished_lines)
-# ─── Enhanced Footer ────────────────────────────────────────────
+        data = {
+            'category': category,
+            'tone': tone,
+            'product': product,
+            'usp': usp or "Premium Quality",
+            'attributes': attributes or "Expertly crafted",
+            'fabric': ", ".join(fabric) if fabric else "Premium materials",
+            'festival': festival or "Special occasion",
+            'discount': discount,
+            'timing': timing or "Limited time",
+            'char_limit': char_limit,
+            'emotion': emotion or "Exclusive luxury"
+        }
 
+        prompt = build_prompt(data)
+        
+        with st.spinner("✨ Generating..."):
+            try:
+                response = model.generate_content(prompt)
+                copy = response.text.strip()
+                
+                # FIXED CHARACTER LIMIT ENFORCEMENT
+                if category != "PMAX" and category not in ["Email Subject Lines", "Long Content"]:
+                    if len(copy) > char_limit:
+                        # Hard truncate at character limit
+                        copy = copy[:char_limit-3] + "..."
+                        st.warning(f"⚠️ Copy truncated to {char_limit} characters")
+                
+                # Remove banned words
+                for word in BANNED_WORDS:
+                    copy = copy.replace(word, "").replace(word.capitalize(), "")
+                
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+                st.stop()
 
+        # Display Results
+        st.markdown("---")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(f'<div class="metric-card"><b>{category}</b></div>', unsafe_allow_html=True)
+        with col2:
+            if category == "PMAX":
+                st.markdown('<div class="metric-card"><b>PMAX Format</b></div>', unsafe_allow_html=True)
+            else:
+                char_color = "green" if len(copy) <= char_limit else "red"
+                st.markdown(f'<div class="metric-card" style="color: {char_color}"><b>{len(copy)} chars</b><br><small>Limit: {char_limit}</small></div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown(f'<div class="metric-card"><b>{discount}% OFF</b></div>', unsafe_allow_html=True)
+        with col4:
+            st.markdown(f'<div class="metric-card"><b>{len(copy.split())} words</b></div>', unsafe_allow_html=True)
+
+        st.markdown("### 🎯 Generated Copy")
+        st.markdown(f'<div class="result-container">{copy}</div>', unsafe_allow_html=True)
+        st.code(copy)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Generate Another", use_container_width=True):
+                st.rerun()
+        with col2:
+            st.download_button("📥 Download", copy, f"{product.replace(' ', '_')}.txt", use_container_width=True)
+
+    else:
+        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
+        st.markdown("""
+        ## ⚙️ Flexible Mode - Full Control
+        
+        **Perfect for advanced users:**
+        🎛️ Complete customization of all parameters  
+        🎯 Custom USPs and emotional hooks  
+        📝 Detailed product attributes  
+        🎨 Advanced tone and timing controls  
+        
+        **Fill all details in sidebar for best results!**
+        """)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# ─── Footer ──────────────────────────────────────────────────
 st.markdown("---")
-st.markdown(
-    '<div style="text-align: center; color: #6c757d; font-style: italic;">✨ Powered by Advanced AI • Designed for Premium Brands</div>', 
-    unsafe_allow_html=True
-)
-
-
+st.markdown('<div style="text-align: center; color: #6c757d;">✨ Powered by AI • Made for Premium Brands</div>', unsafe_allow_html=True)
