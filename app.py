@@ -66,14 +66,6 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     
-    .welcome-card {
-        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin: 2rem 0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    }
-    
     .mode-selector {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -279,21 +271,6 @@ if mode == "🎯 Easy Mode - Quick Setup":
         with col2:
             st.download_button("📥 Download", copy_easy, f"{product_name}.txt", use_container_width=True)
 
-    else:
-        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
-        st.markdown("""
-        ## 🎯 Easy Mode - Quick & Simple
-        
-        **Perfect for beginners:**
-        ✅ Pre-loaded garment types and occasions  
-        ✅ Simplified fabric selection  
-        ✅ Guided setup process  
-        ✅ Same expert quality output  
-        
-        **Just fill the sidebar and generate!**
-        """)
-        st.markdown('</div>', unsafe_allow_html=True)
-
 # ─── FLEXIBLE MODE ────────────────────────────────────────────
 elif mode == "⚙️ Flexible Mode - Full Control":
     
@@ -458,21 +435,6 @@ elif mode == "⚙️ Flexible Mode - Full Control":
                 st.rerun()
         with col2:
             st.download_button("📥 Download", copy, f"{product.replace(' ', '_')}.txt", use_container_width=True)
-
-    else:
-        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
-        st.markdown("""
-        ## ⚙️ Flexible Mode - Full Control
-        
-        **Perfect for advanced users:**
-        🎛️ Complete customization of all parameters  
-        🎯 Custom USPs and emotional hooks  
-        📝 Detailed product attributes  
-        🎨 Advanced tone and timing controls  
-        
-        **Fill all details in sidebar for best results!**
-        """)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── Footer ──────────────────────────────────────────────────
 st.markdown("---")
