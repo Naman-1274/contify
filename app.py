@@ -188,13 +188,13 @@ if mode == "🎯 Easy Mode - Quick Setup":
                 char_limit_easy = {
                     'headlines': 30,
                     'description': 90,
-                    'long_headlines': 90
+                    'long_headlines': 120
                 }
-                st.info("PMAX: Headlines=30, Description=90, Long Headlines=90")
+                st.info("PMAX: Headlines=30, Description=90, Long Headlines=120")
             else:
                 char_limit_easy = st.selectbox(
                     "Character Limit",
-                    [30, 50, 70, 90, 120],
+                    [30, 50, 70, 90, 120, 200, 300, 500, 1000],
                     index=1,  # Default to 50
                     help="Select character limit"
                 )
@@ -340,13 +340,13 @@ elif mode == "⚙️ Flexible Mode - Full Control":
                 char_limit = {
                     'headlines': 30,
                     'description': 90,
-                    'long_headlines': 90
+                    'long_headlines': 120
                 }
-                st.info("PMAX: Headlines=30, Description=90, Long Headlines=90")
+                st.info("PMAX: Headlines=30, Description=90, Long Headlines=120")
             else:
                 char_limit = st.selectbox(
                     "Character Limit",
-                    [30, 50, 70, 90, 120],
+                    [30, 50, 70, 90, 120, 200, 300, 500, 1000],
                     index=1,  # Default to 50
                     help="Select character limit"
                 )
