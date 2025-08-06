@@ -206,11 +206,13 @@ if mode == "🎯 Easy Mode - Quick Setup":
             st.error("⚠️ Please fill Brand Name and Garment Type")
             st.stop()
 
-        product_name = f"{brand_name} {garment_type}"
+        product_name =  garment_type
+        brand_name = brand_name
         data_easy = {
             'category': category_easy,
             'tone': tone_easy, 
             'product': product_name,
+            'brand': brand_name,
             'usp': usp_easy or "Premium Quality",
             'attributes': "Expertly crafted",
             'fabric': ", ".join(fabric_easy) if fabric_easy else "Premium materials",

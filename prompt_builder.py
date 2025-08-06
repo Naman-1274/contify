@@ -8,7 +8,7 @@ def build_prompt(data: dict) -> str:
 
     # 1. EMAIL SUBJECT LINES - Enhanced for human-like, expert quality
     if data['category'] == "Email Subject Lines":
-        return f"""You write email copy for premium fashion brands. Create one email hero section with these three parts written in a human daily conversation and expert marketer style:
+        return f"""You are a professional email copywriter for premium fashion brands. Create one email hero section with these three parts written in a human daily conversation and expert marketer style and don't use robotic symbols eg '-' or '!':
 
     STEP 1 – HEADLINE  
     Write ONE new catchy line that sounds like something you'd actually say to a friend:
@@ -48,50 +48,52 @@ def build_prompt(data: dict) -> str:
         description_limit = data['char_limit']['description']
         long_headline_limit = data['char_limit']['long_headlines']
         
-        return f"""Create Google Ads PMAX copy that sounds human and converts. Write like an expert performance marketer who understands premium fashion.
+        return f"""You're a professional content creator writing Google Ads copy for a premium fashion brand. Write like you're chatting with friends who totally get style, but keep it conversion-focused and don't use robotic symbols eg '-' or '!'. 
 
     Format EXACTLY as shown:
 
     Headlines (max {headline_limit} characters each)
-    [Create 5 headlines, each max {headline_limit} chars, punchy and human-sounding]
+    [Create 15 headlines, each max {headline_limit} chars, mixing brand-specific and product-focused lines]
 
     Description (max {description_limit} characters each)
-    [Create 5 descriptions, each max {description_limit} chars, focusing on emotion and benefit]
+    [Create 5 descriptions, each max {description_limit} chars, written like you're personally recommending this to a style-savvy friend]
 
     Long Headlines (max {long_headline_limit} characters each)
-    [Create 2 long headlines, each max {long_headline_limit} chars, more descriptive and story-driven]
+    [Create 5 long headlines, each max {long_headline_limit} chars, telling the story like you're genuinely excited to share]
 
-    Use these inputs naturally:
-    • Product: {data['product']}
-    • Key benefit: {data['usp']}
-    • Materials: {data['fabric']}
-    • Occasion: {data['festival']}
-    • Discount: {data['discount']}% (if {data['discount']} > 0)
-    • Emotional hook: {data.get('emotion', 'Premium quality')}
+    Work these in naturally like you're having a conversation:
+    • What we're talking about: {data['product']}
+    • The Brand Name: {data['brand']}
+    • Why it's amazing: {data['usp']}
+    • What it's made from: {data['fabric']}
+    • Perfect for: {data['festival']}
+    • Special deal: {data['discount']}% off (mention in 2-3 places only if >0)
+    • The feels: {data.get('emotion', 'Premium quality')}
 
-    Write headlines that:
-    - Sound conversational, not robotic
-    - Focus on outcomes and feelings
-    - Include specific product benefits
-    - IMPORTANT: If discount is {data['discount']}% (greater than 0), include it in 2-3 headlines
-    - Create urgency when appropriate
-    - Feel premium but approachable
+    Headlines should feel like:
+    - "Brand Name Festival Edit" (lead with brand + collection)
+    - "Festival Styles by Brand Name" (mix it up)
+    - Natural mentions of the occasion and product fabric
+    - Conversational but premium product mentions
+    - Like something you'd actually say to recommend a brand
 
-    Never use: {', '.join(BANNED_WORDS)}
+    Descriptions should sound like you're texting a friend use below examples as inspiration and write in a friendly, everyday human voice:
+    "You HAVE to see Brand's new collection—anarkalis, lehengas, the whole deal for [occasion]"
+    "Just discovered Brand's [fabric] pieces and they're perfect for [festival]"
+    "Brand just dropped their [collection] and honestly, it's everything"
 
-    Example style (don't copy exactly):
-    Headlines
-    Perfect for special moments
-    Premium comfort collection
-    Festival ready styles
-    Up to 20% off today
-    Handcrafted with love
+    Long Headlines tell the full story use below examples as inspiration and write in a friendly, everyday human voice:
+    "Honestly obsessed with Brand's new [occasion] edit—anarkalis, lehengas & more"
+    "Brand's [fabric] collection just landed and it's perfect for [occasion] season"
 
-    Write in the exact format shown above with strict character limits."""
+    Skip these overused words: {', '.join(BANNED_WORDS)}
+
+    Write in the exact format shown above. Make it sound like a content creator who genuinely loves fashion talking to their audience—professional but real."""
+
 
     # 2. LONG CONTENT  ──────────────────────────────────────────────
     if data['category'] == "Long Content":
-        return f"""You are a expert copywriter for premium fashion brands and site banners. Create three parts in a warm, human daily conversational tone:
+        return f"""You are a professional copywriter for premium fashion brands and site banners. Create three parts in a warm, human daily conversational tone and don't use robotic symbols eg '-' or '!':
 
     STEP 1 – HEADLINE  
     • ONE punchy new headline that blends the moment and the offer, e.g.  
@@ -125,7 +127,7 @@ def build_prompt(data: dict) -> str:
 
     # 3. CONCISE CONTENT ───────────────────────────────────────────
     if data['category'] == "Concise Content":
-        return f"""You are a expert scroll-stopping captions writer for premium fashion brands. Give me three lines in a friendly, everyday human voice:
+        return f"""You are a professional scroll-stopping captions writer for premium fashion brands. Give me three lines in a friendly, everyday human voice and don't use robotic symbols eg '-' or '!':
 
     STEP 1 – HEADLINE  
     • ONE fresh opener that sparks curiosity or names the moment.  
@@ -149,13 +151,14 @@ def build_prompt(data: dict) -> str:
     1. Output exactly three text blocks in order: HEADLINE, *blank line*, DESCRIPTION, *blank line*, CTA.  
     2. Do **NOT** label the blocks.  
     3. Preserve the blank lines so the app can split them.
+    4. Keep it under {data['char_limit']} characters total.
 
     Write ONLY the requested copy—nothing extra."""
 
 
     # 5. WHATSAPP BROADCAST - Enhanced for personal feel
     if data['category'] == "WhatsApp Broadcast":
-        return f"""Write a WhatsApp message that feels like a personal recommendation from a stylish friend, not a brand broadcast.
+        return f"""Write a WhatsApp message that feels like a personal recommendation from a stylish friend, not a brand broadcast and don't use robotic symbols eg '-' or '!'.
 
     Create 3-4 lines that feel warm and personal:
 
@@ -191,8 +194,9 @@ def build_prompt(data: dict) -> str:
 
     Write like you're texting a friend who loves fashion:
     - Use "you" and "your" naturally
-    - Share excitement genuinely  
-    - Mention specific benefits they'd care about
+    - Share excitement genuinely for the product
+    - Mention the occasion casually 
+    - Mention specific benefits, Brand they'd care about
     - IMPORTANT: If discount is {data['discount']}% (greater than 0), mention it naturally
     - Add one emoji only if it feels natural
     - Sign off warmly with team name
