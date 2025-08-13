@@ -283,10 +283,14 @@ elif mode == "⚙️ Flexible Mode - Full Control":
         with st.expander("🏷️ Product Information", expanded=True):
             product = st.text_input(
                 "Product/Brand Name", 
-                placeholder="e.g., Dolly J Wedding Collection",
-                help="Enter your brand or product name"
+                placeholder="e.g. Wedding Collection",
+                help="Enter your product name"
             )
-            
+            brand = st.text_input(
+                "Brand Name", 
+                placeholder="e.g., Dolly J",
+                help="Enter your brand name"
+            )
             usp = st.text_input(
                 "Unique Selling Point", 
                 placeholder="e.g., Effortless Glamour, Made for Moments",
@@ -375,6 +379,7 @@ elif mode == "⚙️ Flexible Mode - Full Control":
             st.stop()
 
         data = {
+            'brand': brand,
             'category': category,
             'tone': tone,
             'product': product,
