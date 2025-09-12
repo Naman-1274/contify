@@ -465,6 +465,7 @@ elif mode == "⚙️ Flexible Mode - Full Control":
 
         data = {
             'brand': brand,
+            'brand': brand,
             'category': category,
             'tone': tone,
             'product': product,
