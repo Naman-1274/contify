@@ -4,7 +4,7 @@ BANNED_WORDS = [
 ]
 
 def build_prompt(data: dict) -> str:
-    """Ultra-aggressive structure enforcement prompts."""
+    """Enhanced structure enforcement prompts with variation uniqueness and better format compliance."""
     
     product = data.get('product', '').strip()
     brand = data.get('brand', '').strip()
@@ -12,102 +12,155 @@ def build_prompt(data: dict) -> str:
     festival = data.get('festival', '').strip()
     discount = data.get('discount', 0)
     char_limit = data.get('char_limit', 300)
+    tone = data.get('tone', 'casual').strip().lower()
     banned = ', '.join(BANNED_WORDS)
+    
+    # Extract style-specific elements for enhanced variation
+    approach = data.get('approach', 'Create engaging content')
+    opener = data.get('opener', 'New arrivals')
+    cta_style = data.get('cta_style', 'Shop Now')
+    emotion = data.get('emotion', 'special moments')
+    variation_tone = data.get('tone', 'conversational')
+    
+    base_requirements = f"""
+CORE REQUIREMENTS:
+- Product: {product}
+- Brand: {brand} 
+- Fabric: {fabric}
+- Occasion: {festival}
+- Discount: {discount}% {'(include if > 0)' if discount > 0 else '(ignore)'}
+- USP: {data.get('usp', 'Premium Quality')}
+- Tone: {tone}
+- Character Limit: {char_limit}
+- Emotion: {emotion}
+
+CREATIVE DIRECTION: {approach}
+OPENING STYLE: {opener}
+CTA PREFERENCE: {cta_style}
+
+BANNED WORDS (avoid completely): {banned}
+USE ONLY: Periods (.) and commas (,) for punctuation - NO exclamation marks (!) or dashes (-)
+
+UNIQUENESS REQUIREMENT: This variation must be COMPLETELY different from other variations in:
+- Opening words and phrases
+- Emotional approach
+- Benefit focus
+- Sentence structure
+- Call-to-action style"""
 
     if data['category'] == "Email Subject Lines":
-        return f"""you are a expert Marketing email writer and is very creative and catchy for
-        {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0
-        and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
-        and use human symbols like , and . instead of ! or - .
+        return f"""{base_requirements}
 
-ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
-[Single line headline - complete sentence]
-[blank line]
-[Single line description - complete sentence about {festival} or {discount}% or {product}, {brand}, {fabric}] use storytelling if possible
-[blank line]
-[2-3 word CTA]
+EMAIL SUBJECT LINE FORMAT - FOLLOW EXACTLY:
 
-STRICT RULES:
-- EXACTLY 3 lines separated by blank lines
-- NO labels like "Headline:" or "Subject:"  
-- NO bullet points, NO numbering, NO quotes
-- Each line must be complete and make sense alone
-- equal to {char_limit} characters
-- Avoid: {banned}
+[Single line headline - complete sentence - USE UNIQUE OPENING: "{opener}" style or similar]
 
-Use: {product}, {brand}, {fabric}, {festival}, {discount}% discount
+[Single line description - complete sentence about {festival}/{discount}%/{product} - DIFFERENT ANGLE THAN OTHER VARIATIONS]
 
-Example format:
+[2-3 word CTA - USE "{cta_style}" STYLE]
+
+ABSOLUTE STRUCTURE RULES:
+- EXACTLY 3 lines with blank lines between them
+- NO labels like "Headline:" "Subject:" "Description:" or "CTA:"
+- NO bullet points (•), NO numbering (1,2,3), NO quotes ("")
+- Each line must be complete and standalone
+- Character limit: {char_limit} characters total
+- Must blend {product}, {brand}, {fabric}, {festival} naturally
+- MUST BE UNIQUE - different opening, different angle, different words
+
+EXAMPLE STRUCTURE (create something completely different):
 Weekend Style Refresh
 
-New silk pieces perfect for Diwali celebrations
+New silk pieces perfect for Diwali celebrations  
 
 Shop Now
 
-Generate complete set as asked above Asked ads copy with character limit = {char_limit}:"""
+CRITICAL: Output ONLY the 3 lines in the exact format shown. No explanations, no extra text, no labels."""
 
     elif data['category'] == "WhatsApp Broadcast":
-        return f"""you are a expert marketing senior human and is very creative and catchy for
-        {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0
-        and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
-        and use human symbols like , and . instead of ! or - .
+        return f"""{base_requirements}
 
-ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
-[Single line headline]
-[blank line]
-[First description line - storytelling] use the blend of {festival}, {product}, {brand}, {fabric} if possible
-[Second description line - continues story] continue from first line
-[Optional third description line] end with a soft nudge to check it out
-[blank line]
-[2-3 word CTA]
+WHATSAPP BROADCAST FORMAT - FOLLOW EXACTLY:
 
-Example:
+[Single line headline - USE UNIQUE OPENING WORDS: "{opener}" approach]
+
+[First description line - storytelling blend of {festival}, {product}, {brand}, {fabric} - DIFFERENT STORY ANGLE]
+[Second description line - continues story - UNIQUE CONTINUATION]
+[Optional third description line - soft nudge - DIFFERENT FROM OTHER VARIATIONS]
+
+[2-3 word CTA - USE "{cta_style}" STYLE]
+
+ABSOLUTE STRUCTURE RULES:
+- Headline + multi-line description + CTA
+- NO labels like "Headline:" or "Description:" or "CTA:"
+- NO bullet points, NO numbering, NO quotes
+- Description can be 2-3 lines but flows as one story
+- Character limit: {char_limit} characters total
+- MUST BE UNIQUE story and approach
+- Each line meaningful and complete
+
+EXAMPLE STRUCTURE (create something completely different):
 Found your Raksha Bandhan look
 
 Spotted this gorgeous silk kurta that flows beautifully
 Perfect for those long family celebration nights
+Thought you'd love it
 
 Check it out
 
-Generate complete set as asked above Asked ads copy with character limit = {char_limit}:"""
+CRITICAL: Output ONLY in the exact format shown. No labels, no extra text."""
 
     elif data['category'] == "Concise Content":
-        return f"""you are a expert marketing senior human and is very creative and catchy for
-        {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0
-        and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
-        and use human symbols like , and . instead of ! or - .
+        return f"""{base_requirements}
 
-Must follow this EXACT format with NO deviations:
-[Single headline line]
-[blank line]
-[Single description line - storytelling focused] blend {festival}, {product}, {brand}, {fabric} if possible
-[blank line]
-[2-4 word CTA]
+CONCISE CONTENT FORMAT - FOLLOW EXACTLY:
 
-Example:
+[Single headline line - USE UNIQUE OPENING WORDS: "{opener}" style]
+
+[Single description line - storytelling focused, blend {festival}, {product}, {brand}, {fabric} - DIFFERENT BENEFIT/ANGLE]
+
+[2-4 word CTA - USE "{cta_style}" STYLE]
+
+ABSOLUTE STRUCTURE RULES:
+- EXACTLY 3 lines with blank lines between them
+- NO labels whatsoever
+- NO bullet points, NO numbering, NO quotes
+- Each line complete and meaningful
+- Character limit: {char_limit} characters total
+- MUST BE UNIQUE approach and words
+- Focus on {emotion} feeling
+
+EXAMPLE STRUCTURE (create something completely different):
 Weekend wardrobe sorted
 
 New linen pieces perfect for breezy festivities
 
 Shop Now
 
-Generate complete set as asked above Asked ads copy with character limit = {char_limit}::"""
+CRITICAL: Output ONLY the 3 lines in exact format. No labels, no explanations."""
 
     elif data['category'] == "Long Content":
-        return f"""you are a expert marketing senior human and is very creative and catchy for
-        {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0
-        and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
-        and use human symbols like , and . instead of ! or - .
+        return f"""{base_requirements}
 
-ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
-[Single headline]
-[blank line]
-[First description line - sets scene] use {festival} if possible and {discount}%
-[Second description line - explains benefit] use {product}, {brand}, {fabric} if possible
-[blank line]
-[3-5 word CTA]
+LONG CONTENT FORMAT - FOLLOW EXACTLY:
 
-Example:
+[Single headline - USE UNIQUE OPENING WORDS: "{opener}" approach]
+
+[First description line - sets scene, use {festival} and {discount if discount > 0 else 'premium quality'} - DIFFERENT SCENE/ANGLE]
+[Second description line - explains benefit, use {product}, {brand}, {fabric} - UNIQUE BENEFIT FOCUS]
+
+[3-5 word CTA - USE "{cta_style}" STYLE]
+
+ABSOLUTE STRUCTURE RULES:
+- Headline + 2 description lines + CTA (4 lines total with blank lines between)
+- NO labels like "Headline:" or "Description:"
+- NO bullet points, NO numbering, NO quotes
+- Description lines flow together as one story
+- Character limit: {char_limit} characters total
+- MUST BE UNIQUE narrative and approach
+- Channel {emotion} throughout
+
+EXAMPLE STRUCTURE (create something completely different):
 Festive Season Perfection
 
 Our silk collection captures every special moment beautifully
@@ -115,22 +168,52 @@ Designed for celebrations that deserve nothing but the finest
 
 Shop Collection
 
-Generate complete set as asked above Asked ads copy with character limit = {char_limit}:"""
+CRITICAL: Output ONLY in the exact format shown. No labels, no extra text."""
 
     elif data['category'] == "PMAX":
-        return f"""Generate a Google Ads PMAX copy like you are a expert marketing senior human and is very creative and catchy for 
-            {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0 
-            and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned} and use human symbols like , and . instead of ! or - .
+        return f"""{base_requirements}
 
-ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
+GOOGLE ADS PMAX FORMAT - FOLLOW EXACTLY:
+
 Headlines:
-[15 short headlines under 30 chars each]
-[Blank line]
+[15 short headlines under 30 characters each - VARY THE APPROACH: some "{opener}" style, some {emotion}, some product-focused]
+
 Descriptions:  
-[5 descriptions under 90 chars each]
-[Blank line]
+[5 descriptions under 90 characters each - DIFFERENT ANGLES: benefit, feature, emotion, urgency, lifestyle]
+
 Long Headlines:
-[5 long headlines under 120 chars each]
+[5 long headlines under 120 characters each - MIX OF: storytelling, feature+benefit, seasonal, brand+product, emotional]
 
+ABSOLUTE STRUCTURE RULES:
+- Use EXACTLY the labels "Headlines:", "Descriptions:", "Long Headlines:"
+- NO bullet points, NO numbering within sections
+- Each item on its own line
+- Headlines: 30 char max each (aim for 25-30)
+- Descriptions: 90 char max each (aim for 80-90)
+- Long Headlines: 120 char max each (aim for 100-120)
+- Include variations of {product}, {brand}, {fabric}, {festival}
+- ENSURE DIVERSITY in approaches and angles
+- Use {emotion} and {approach} throughout different items
 
-Generate complete set as asked above Asked ads copy with character limit = {char_limit}:"""
+CRITICAL: Follow the exact 3-section format with proper labels and character limits. Create diverse content across all sections."""
+
+    else:
+        # Fallback for any other category
+        return f"""{base_requirements}
+
+GENERAL MARKETING COPY FORMAT - FOLLOW EXACTLY:
+
+[Single headline - UNIQUE OPENING: "{opener}" style]
+
+[Single description line - blend {festival}, {product}, {brand}, {fabric} - DIFFERENT ANGLE]
+
+[CTA - USE "{cta_style}" STYLE]
+
+ABSOLUTE STRUCTURE RULES:
+- EXACTLY 3 lines with blank lines between them
+- NO labels, NO bullet points, NO quotes
+- Character limit: {char_limit}
+- MUST BE UNIQUE and different from other variations    
+- Focus on {emotion}
+
+CRITICAL: Output ONLY the 3 lines with blank lines between them. No explanations."""
