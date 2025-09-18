@@ -20,7 +20,7 @@ def build_prompt(data: dict) -> str:
         and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
         and use human symbols like , and . instead of ! or - .
 
-Must follow this EXACT format with NO deviations:
+ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
 [Single line headline - complete sentence]
 [blank line]
 [Single line description - complete sentence about {festival} or {discount}% or {product}, {brand}, {fabric}] use storytelling if possible
@@ -52,7 +52,7 @@ Generate complete set as asked above Asked ads copy with character limit = {char
         and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
         and use human symbols like , and . instead of ! or - .
 
-Must follow this EXACT format with NO deviations:
+ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
 [Single line headline]
 [blank line]
 [First description line - storytelling] use the blend of {festival}, {product}, {brand}, {fabric} if possible
@@ -99,7 +99,7 @@ Generate complete set as asked above Asked ads copy with character limit = {char
         and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned}
         and use human symbols like , and . instead of ! or - .
 
-Must follow this EXACT format with NO deviations:
+ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
 [Single headline]
 [blank line]
 [First description line - sets scene] use {festival} if possible and {discount}%
@@ -122,7 +122,7 @@ Generate complete set as asked above Asked ads copy with character limit = {char
             {product} and {brand} with fabric {fabric} for {festival} festival with {discount}% discount if discount > 0 
             and utilize the unique selling point {data.get('usp','')} if exists and blend everything seamlessly.Avoid banned words : {banned} and use human symbols like , and . instead of ! or - .
 
-Must follow this EXACT format with NO deviations:
+ENFORCE: Output MUST have EXACTLY these lines with blank lines in between, if format is not followed, regenerate internally until correct.
 Headlines:
 [15 short headlines under 30 chars each]
 [Blank line]

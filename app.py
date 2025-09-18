@@ -66,7 +66,7 @@ class GroqContentGenerator:
             params = {
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.8,
+                "temperature": 0.5,
                 "max_completion_tokens": 1024,
                 "top_p": 0.9,
                 "stream": streaming,
@@ -453,24 +453,11 @@ mode = st.radio(
 )
 
 def display_variations(variations, data):
-    """Display generated variations in a single table"""
-    
     if not variations or not variations[0].get('content'):
         st.error("No variations generated")
         return
     
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f'<div class="metric-card"><b>{data["category"]}</b></div>', unsafe_allow_html=True)
-    with col2:
-        avg_chars = sum(v['char_count'] for v in variations) // len(variations)
-        st.markdown(f'<div class="metric-card"><b>{avg_chars} avg chars</b></div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown(f'<div class="metric-card"><b>{data.get("discount", 0)}% OFF</b></div>', unsafe_allow_html=True)
-    with col4:
-        st.markdown(f'<div class="metric-card"><b>{len(variations)} Variations</b></div>', unsafe_allow_html=True)
-    
+
     # Single table with all variations
     st.markdown("### 🎯 Generated Variations")
     
@@ -510,13 +497,10 @@ def display_variations(variations, data):
             # Display content in card format
             st.markdown(f'<div class="variation-card">{variation.get("content", "No content")}</div>', unsafe_allow_html=True)
             
-            col1, col2, col3 = st.columns([2, 1, 1])
+            col1, col2 = st.columns([2, 1])
             with col1:
                 st.code(variation.get("content", "No content"), language="text")
             with col2:
-                st.metric("Characters", variation.get("char_count", 0))
-                st.metric("Words", variation.get("word_count", 0))
-            with col3:
                 st.caption(f"🤖 {variation.get('model_used', 'Unknown')}")
                 st.download_button(
                     "📥 Download",
