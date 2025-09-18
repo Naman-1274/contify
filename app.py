@@ -436,8 +436,8 @@ st.markdown("### Professional ad copy with multiple creative variations")
 col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     model_options = {
-        "⚡ Llama 3.1 8B (Fastest)": "llama-3.1-8b-instant",
-        "💡 Gemma2 9B": "gemma2-9b-it"
+        "💡 Gemma2 9B": "gemma2-9b-it",
+        "⚡ Llama 3.1 8B (Fastest)": "llama-3.1-8b-instant"
     }
     selected_model_name = st.selectbox("🤖 AI Model", list(model_options.keys()))
     selected_model = model_options[selected_model_name]
@@ -607,7 +607,6 @@ if mode == "🎯 Easy Mode":
             except Exception as e:
                 st.error(f"Generation failed: {str(e)}")
 
-# ADVANCED MODE  
 elif mode == "⚙️ Advanced Mode":
     
     with st.sidebar:
