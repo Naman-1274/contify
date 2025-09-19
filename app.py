@@ -1,6 +1,8 @@
 import os
 import streamlit as st
 import re
+import time
+import random
 from groq import Groq
 from dotenv import load_dotenv
 from prompt_builder import PromptBuilder, BANNED_WORDS
@@ -24,16 +26,22 @@ class GroqContentGenerator:
         self.client = Groq(api_key=self.api_key)
         self.prompt_builder = PromptBuilder()
         
-        # Track generated content for uniqueness
+        # Reset tracking for each new instance
+        self.reset_generation_state()
+    
+    def reset_generation_state(self):
+        """Reset all generation tracking for fresh content"""
         self.generated_hooks = set()
         self.generated_phrases = set()
+        self.generation_timestamp = time.time()
+        self.generation_counter = 0
     
     def test_connection(self):
         """Test API connection"""
         try:
             completion = self.client.chat.completions.create(
                 model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": "Hello"}],
+                messages=[{"role": "user", "content": "Test"}],
                 temperature=1,
                 max_completion_tokens=5,
                 top_p=1,
@@ -48,32 +56,54 @@ class GroqContentGenerator:
     def generate_single_variation(self, data: dict, variation_number: int, content_type: str, 
                                 model: str = "llama-3.1-8b-instant", streaming: bool = False, 
                                 placeholder=None, max_retries: int = 3):
-        """Generate single variation with enhanced uniqueness"""
+        """Generate single variation with enhanced uniqueness and randomization"""
+        
+        self.generation_counter += 1
         
         for attempt in range(max_retries):
             try:
-                # Get unique prompt from prompt builder
+                # Create unique timestamp-based seed for this specific generation
+                current_time = int(time.time() * 1000000)
+                unique_seed = current_time + variation_number * 10000 + attempt * 1000 + self.generation_counter
+                
+                # Get unique prompt with enhanced randomization
                 prompt = self.prompt_builder.build_unique_prompt(
                     data, variation_number, content_type, 
                     previous_hooks=list(self.generated_hooks),
                     previous_phrases=list(self.generated_phrases)
                 )
                 
-                # Enhanced parameters for uniqueness per variation
-                temperature = 0.7 + (variation_number * 0.2) + (attempt * 0.1)
-                top_p = 0.8 + (variation_number * 0.1)
+                # Dynamic parameters for maximum variety
+                base_temp = 0.8 + (variation_number * 0.15) + (attempt * 0.1)
+                temperature = min(base_temp + random.uniform(-0.2, 0.3), 1.5)
+                
+                base_top_p = 0.85 + (variation_number * 0.05) + random.uniform(-0.1, 0.1)
+                top_p = min(max(base_top_p, 0.1), 1.0)
+                
+                # Add randomization to system message
+                system_messages = [
+                    f"You are creating variation #{variation_number}. Make it completely unique and different from any previous content. Use creative approach {unique_seed % 5 + 1}.",
+                    f"Generate variation #{variation_number} with maximum creativity. Avoid repetition. Creative seed: {unique_seed}",
+                    f"Create fresh, original variation #{variation_number}. Think outside the box. Randomization: {unique_seed}",
+                    f"Variation #{variation_number} needs to be completely different. Use unique perspective {unique_seed % 3 + 1}.",
+                    f"Generate diverse variation #{variation_number}. Maximum originality required. Seed: {unique_seed}"
+                ]
+                
+                system_msg = random.choice(system_messages)
                 
                 params = {
                     "model": model,
                     "messages": [
-                        {"role": "system", "content": f"You are creating variation #{variation_number}. Make it completely unique."},
+                        {"role": "system", "content": system_msg},
                         {"role": "user", "content": prompt}
                     ],
-                    "temperature": min(temperature, 1.5),  # Cap at 1.5
+                    "temperature": temperature,
                     "max_completion_tokens": 1024,
-                    "top_p": min(top_p, 1.0),  # Cap at 1.0
+                    "top_p": top_p,
                     "stream": streaming,
-                    "stop": None
+                    "stop": None,
+                    "frequency_penalty": 0.8,  # Penalize repetition
+                    "presence_penalty": 0.6    # Encourage new topics
                 }
                 
                 completion = self.client.chat.completions.create(**params)
@@ -89,25 +119,29 @@ class GroqContentGenerator:
                 else:
                     result = completion.choices[0].message.content
                 
-                # Validate and clean result
+                # Enhanced validation and cleaning
                 if self._validate_content(result, content_type):
-                    cleaned_result = self._clean_and_format_content(result, data, content_type)
+                    cleaned_result = self._clean_and_format_content(result, data, content_type, variation_number)
                     
-                    # Check uniqueness against previous generations
-                    if self._is_unique_content(cleaned_result, variation_number):
-                        # Store hooks and phrases for future uniqueness checks
+                    # Enhanced uniqueness check
+                    if self._is_sufficiently_unique(cleaned_result, variation_number, attempt):
+                        # Store elements for uniqueness tracking
                         self._extract_and_store_elements(cleaned_result)
                         return cleaned_result
                     elif attempt < max_retries - 1:
-                        continue  # Try again with different parameters
+                        # Add more randomization for next attempt
+                        time.sleep(0.1)  # Small delay to ensure different timestamp
+                        continue
                     else:
-                        # Last attempt - accept but mark as less unique
-                        return self._create_fallback_content(data, content_type, variation_number)
+                        # Accept with modifications on last attempt
+                        modified_result = self._add_uniqueness_modifications(cleaned_result, variation_number)
+                        self._extract_and_store_elements(modified_result)
+                        return modified_result
                 else:
                     if attempt < max_retries - 1:
                         continue
                     else:
-                        return self._create_fallback_content(data, content_type, variation_number)
+                        return self._create_emergency_fallback(data, content_type, variation_number)
                         
             except Exception as e:
                 if attempt == max_retries - 1:
@@ -119,12 +153,14 @@ class GroqContentGenerator:
                         raise Exception("API quota exceeded. Check your Groq billing.")
                     else:
                         raise Exception(f"Groq API error: {str(e)}")
+                # Add delay before retry
+                time.sleep(0.5)
                 continue
         
-        return self._create_fallback_content(data, content_type, variation_number)
+        return self._create_emergency_fallback(data, content_type, variation_number)
     
     def _validate_content(self, content: str, content_type: str) -> bool:
-        """Validate content structure and quality"""
+        """Enhanced content validation"""
         if not content or len(content.strip()) < 10:
             return False
         
@@ -135,36 +171,73 @@ class GroqContentGenerator:
             required_sections = ["Headlines:", "Descriptions:", "Long Headlines:"]
             return all(section in content for section in required_sections)
         else:
-            # Should have at least 3 meaningful lines for other formats
-            if len(lines) < 3:
+            # Check for minimum content requirements
+            if len(lines) < 2:
                 return False
             
-            # Check for unwanted labels in first few lines
-            unwanted_labels = ['headline:', 'subject:', 'description:', 'cta:', 'title:']
-            for line in lines[:3]:
-                if any(label in line.lower() for label in unwanted_labels):
-                    return False
-        
-        return True
+            # Check for unwanted labels in content
+            unwanted_patterns = [
+                r'^(headline|subject|description|cta|line \d+):\s*',
+                r'^(variation|example|template)\s*\d*:?\s*',
+                r'^[•\-\*]\s*',
+                r'^\d+\.\s*'
+            ]
+            
+            clean_lines = 0
+            for line in lines:
+                if not any(re.match(pattern, line.lower()) for pattern in unwanted_patterns):
+                    clean_lines += 1
+            
+            return clean_lines >= 2
     
-    def _is_unique_content(self, content: str, variation_number: int) -> bool:
-        """Check if content is unique compared to previous variations"""
-        if variation_number == 1:
+    def _is_sufficiently_unique(self, content: str, variation_number: int, attempt: int) -> bool:
+        """Enhanced uniqueness checking"""
+        if variation_number == 1 and attempt == 0:
             return True  # First variation is always unique
         
-        lines = content.split('\n\n')
+        lines = [line.strip() for line in content.split('\n\n') if line.strip()]
         if not lines:
             return False
         
-        # Check first line (headline) uniqueness
+        # Check first line uniqueness (most important)
         first_line = lines[0].strip().lower()
-        first_words = ' '.join(first_line.split()[:3])
+        first_three_words = ' '.join(first_line.split()[:3])
+        first_word = first_line.split()[0] if first_line.split() else ""
         
-        # If first 3 words already used, it's not unique enough
-        if first_words in self.generated_phrases:
-            return False
+        # Multiple uniqueness criteria
+        uniqueness_checks = [
+            first_three_words not in self.generated_phrases,
+            first_word not in self.generated_hooks,
+            len(set(first_line.split()).intersection(self.generated_hooks)) < 2,
+            # Allow some repetition on later attempts
+            attempt > 1 or len(lines) > 1
+        ]
         
-        return True
+        # Pass if at least 2 uniqueness criteria are met
+        return sum(uniqueness_checks) >= 2
+    
+    def _add_uniqueness_modifications(self, content: str, variation_number: int) -> str:
+        """Add modifications to make content more unique"""
+        lines = content.split('\n\n')
+        if not lines:
+            return content
+            
+        # Modify first line to add uniqueness
+        first_line = lines[0].strip()
+        if first_line:
+            # Add variation-specific modifiers
+            modifiers = {
+                1: ["Fresh", "New", "Latest", "Premium", "Quality"],
+                2: ["Perfect", "Ideal", "Beautiful", "Stunning", "Amazing"], 
+                3: ["Special", "Unique", "Exclusive", "Limited", "Custom"]
+            }
+            
+            modifier = random.choice(modifiers.get(variation_number, modifiers[1]))
+            if not any(mod.lower() in first_line.lower() for mod in modifiers[variation_number]):
+                first_line = f"{modifier} {first_line.lower()}"
+                lines[0] = first_line
+        
+        return '\n\n'.join(lines)
     
     def _extract_and_store_elements(self, content: str):
         """Extract and store hooks and phrases for uniqueness tracking"""
@@ -172,37 +245,46 @@ class GroqContentGenerator:
         for line in lines:
             if line.strip():
                 # Store first 3 words as key phrase
-                first_words = ' '.join(line.strip().lower().split()[:3])
-                self.generated_phrases.add(first_words)
+                words = line.strip().lower().split()
+                if len(words) >= 3:
+                    first_three = ' '.join(words[:3])
+                    self.generated_phrases.add(first_three)
                 
                 # Store first word as hook
-                first_word = line.strip().split()[0].lower() if line.strip() else ""
-                if first_word:
-                    self.generated_hooks.add(first_word)
+                if words:
+                    self.generated_hooks.add(words[0])
+                    
+                # Store second word too for better variety
+                if len(words) > 1:
+                    self.generated_hooks.add(words[1])
     
-    def _clean_and_format_content(self, content: str, data: dict, content_type: str) -> str:
-        """Clean and format content according to requirements"""
-        # Remove labels and unwanted formatting
-        content = re.sub(r'^(headline|subject|description|cta):\s*', '', content, flags=re.IGNORECASE | re.MULTILINE)
+    def _clean_and_format_content(self, content: str, data: dict, content_type: str, variation_number: int) -> str:
+        """Enhanced cleaning and formatting with variation-specific handling"""
+        
+        # Remove unwanted labels and formatting
+        content = re.sub(r'^(headline|subject|description|cta|line \d+):\s*', '', content, flags=re.IGNORECASE | re.MULTILINE)
+        content = re.sub(r'^(variation|example|template)\s*\d*:?\s*', '', content, flags=re.IGNORECASE | re.MULTILINE)
         content = re.sub(r'^[•\-\*]\s*', '', content, flags=re.MULTILINE)
         content = re.sub(r'^[0-9]+\.\s*', '', content, flags=re.MULTILINE)
+        content = re.sub(r'^[-=_]{3,}', '', content, flags=re.MULTILINE)
         
         # Remove banned words
         for word in BANNED_WORDS:
             pattern = r'\b' + re.escape(word) + r'\b'
             content = re.sub(pattern, '', content, flags=re.IGNORECASE)
         
-        # Clean up spaces
-        content = re.sub(r'\s+', ' ', content).strip()
+        # Clean up multiple spaces and empty lines
+        content = re.sub(r'\s+', ' ', content)
+        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+        content = content.strip()
         
         if content_type == "PMAX":
             return self._format_pmax_content(content, data)
         else:
-            return self._format_standard_content(content, data, content_type)
+            return self._format_standard_content(content, data, content_type, variation_number)
     
     def _format_pmax_content(self, content: str, data: dict) -> str:
-        """Format PMAX content with proper structure"""
-        # Implementation for PMAX formatting
+        """Enhanced PMAX formatting with better parsing"""
         lines = [line.strip() for line in content.split('\n') if line.strip()]
         
         headlines = []
@@ -211,22 +293,35 @@ class GroqContentGenerator:
         
         current_section = None
         for line in lines:
-            if 'headline' in line.lower() and 'long' not in line.lower():
+            line_lower = line.lower()
+            if 'headline' in line_lower and 'long' not in line_lower:
                 current_section = 'headlines'
                 continue
-            elif 'description' in line.lower():
-                current_section = 'descriptions'
+            elif 'description' in line_lower:
+                current_section = 'descriptions'  
                 continue
-            elif 'long headline' in line.lower():
+            elif 'long headline' in line_lower or 'long-headline' in line_lower:
                 current_section = 'long_headlines'
                 continue
             
+            # Skip section headers and empty lines
+            if line in ['Headlines:', 'Descriptions:', 'Long Headlines:'] or not line:
+                continue
+                
             if current_section == 'headlines' and len(headlines) < 15:
                 headlines.append(line[:30])
             elif current_section == 'descriptions' and len(descriptions) < 5:
                 descriptions.append(line[:90])
             elif current_section == 'long_headlines' and len(long_headlines) < 5:
                 long_headlines.append(line[:120])
+        
+        # Fill missing content if sections are incomplete
+        if len(headlines) < 15:
+            self._fill_missing_pmax_headlines(headlines, data)
+        if len(descriptions) < 5:
+            self._fill_missing_pmax_descriptions(descriptions, data)
+        if len(long_headlines) < 5:
+            self._fill_missing_pmax_long_headlines(long_headlines, data)
         
         # Build formatted result
         result = "Headlines:\n"
@@ -241,43 +336,115 @@ class GroqContentGenerator:
         
         return result.strip()
     
-    def _format_standard_content(self, content: str, data: dict, content_type: str) -> str:
-        """Format standard 3-line content"""
-        lines = [line.strip() for line in content.split('\n') if line.strip()]
-        filtered_lines = []
+    def _fill_missing_pmax_headlines(self, headlines: list, data: dict):
+        """Fill missing PMAX headlines"""
+        templates = [
+            f"New {data.get('product', 'Collection')}",
+            f"{data.get('brand', 'Premium')} Style", 
+            f"{data.get('fabric', 'Quality')} Pieces",
+            f"{data.get('festival', 'Special')} Ready",
+            f"Shop {data.get('product', 'Now')}",
+            "Quality Crafted",
+            "Modern Design", 
+            "Perfect Fit",
+            "Premium Choice",
+            "Style Update",
+            "Fresh Arrivals",
+            "Handpicked",
+            "Trending Now",
+            "Must Have",
+            "Best Seller"
+        ]
         
+        while len(headlines) < 15 and templates:
+            template = templates.pop(0)
+            if template[:30] not in [h[:30] for h in headlines]:
+                headlines.append(template[:30])
+    
+    def _fill_missing_pmax_descriptions(self, descriptions: list, data: dict):
+        """Fill missing PMAX descriptions"""
+        templates = [
+            f"Discover {data.get('product', 'premium pieces')} in {data.get('fabric', 'quality materials')}",
+            f"{data.get('brand', 'Premium brand')} collection for {data.get('festival', 'special moments')}",
+            f"Handcrafted {data.get('product', 'designs')} perfect for your style",
+            f"Quality {data.get('fabric', 'materials')} meets modern design",
+            f"Your perfect {data.get('product', 'outfit')} awaits - shop now"
+        ]
+        
+        while len(descriptions) < 5 and templates:
+            template = templates.pop(0)
+            if template[:90] not in [d[:90] for d in descriptions]:
+                descriptions.append(template[:90])
+    
+    def _fill_missing_pmax_long_headlines(self, long_headlines: list, data: dict):
+        """Fill missing PMAX long headlines"""
+        templates = [
+            f"{data.get('brand', 'Premium')} {data.get('product', 'Collection')} - Handcrafted in {data.get('fabric', 'Quality Materials')}",
+            f"Discover {data.get('product', 'Premium Designs')} Perfect for {data.get('festival', 'Special Occasions')}",
+            f"New {data.get('fabric', 'Quality')} {data.get('product', 'Collection')} - Modern Style Meets Tradition",
+            f"{data.get('brand', 'Premium')} Quality - {data.get('product', 'Pieces')} That Make a Statement",
+            f"Shop {data.get('product', 'Premium Collection')} - {data.get('fabric', 'Quality')} That Speaks to You"
+        ]
+        
+        while len(long_headlines) < 5 and templates:
+            template = templates.pop(0)
+            if template[:120] not in [lh[:120] for lh in long_headlines]:
+                long_headlines.append(template[:120])
+    
+    def _format_standard_content(self, content: str, data: dict, content_type: str, variation_number: int) -> str:
+        """Enhanced standard content formatting"""
+        lines = [line.strip() for line in content.split('\n') if line.strip()]
+        
+        # Filter out unwanted lines more aggressively
+        filtered_lines = []
         for line in lines:
-            if len(line) > 2 and not re.match(r'^[-=_]{3,}$', line):
-                if not any(label in line.lower() for label in ['headline:', 'subject:', 'description:', 'cta:']):
+            if len(line) > 2 and not re.match(r'^[-=_]{3,}', line):
+                # Skip lines with labels
+                if not any(label in line.lower() for label in [
+                    'headline:', 'subject:', 'description:', 'cta:', 'line 1:', 'line 2:', 'line 3:',
+                    'variation', 'example', 'template', 'output', 'format', 'structure'
+                ]):
                     filtered_lines.append(line)
         
-        if len(filtered_lines) < 3:
-            return self._create_fallback_content(data, content_type, 1)
+        if len(filtered_lines) < 2:
+            return self._create_emergency_fallback(data, content_type, variation_number)
         
-        headline = filtered_lines[0]
-        description = filtered_lines[1]
-        cta = filtered_lines[2] if len(filtered_lines) > 2 else "Shop Now"
+        # Extract components based on content type
+        if content_type in ["Email Subject Lines", "Concise Content"]:
+            headline = filtered_lines[0]
+            description = filtered_lines[1] if len(filtered_lines) > 1 else f"Perfect for {data.get('festival', 'special moments')}"
+            cta = filtered_lines[2] if len(filtered_lines) > 2 else random.choice(["Shop Now", "Get Yours", "Discover More"])
+        else:
+            # Longer formats
+            headline = filtered_lines[0]
+            description_parts = filtered_lines[1:3] if len(filtered_lines) > 2 else [filtered_lines[1]]
+            description = " ".join(description_parts)
+            cta = filtered_lines[-1] if len(filtered_lines) > 3 else random.choice(["Shop Today", "Explore Now", "Find Yours"])
         
         # Apply character limits
         char_limit = data.get('char_limit', 300)
-        if isinstance(char_limit, int) and content_type == "Email Subject Lines":
-            headline = headline[:char_limit]
+        if isinstance(char_limit, int):
+            total_content = f"{headline}\n\n{description}\n\n{cta}"
+            if len(total_content) > char_limit:
+                # Trim description to fit
+                available_for_desc = char_limit - len(headline) - len(cta) - 6  # 6 for spacing
+                if available_for_desc > 20:
+                    description = description[:available_for_desc].rsplit(' ', 1)[0]
         
         return f"{headline}\n\n{description}\n\n{cta}"
     
-    def _create_fallback_content(self, data: dict, content_type: str, variation_number: int) -> str:
-        """Create fallback content when generation fails"""
+    def _create_emergency_fallback(self, data: dict, content_type: str, variation_number: int) -> str:
+        """Create emergency fallback when all else fails"""
         return self.prompt_builder.create_fallback_content(data, content_type, variation_number)
     
     def generate_variations(self, data: dict, content_type: str, model: str, streaming: bool = False):
-        """Generate 3 unique variations"""
+        """Generate 3 unique variations with enhanced randomization"""
         
         if not self.test_connection():
             st.warning("Connection test failed, but continuing with generation...")
         
-        # Reset uniqueness tracking for new generation
-        self.generated_hooks.clear()
-        self.generated_phrases.clear()
+        # Reset state for fresh generation
+        self.reset_generation_state()
         
         variations = []
         
@@ -290,13 +457,17 @@ class GroqContentGenerator:
                 placeholders.append(st.empty())
                 st.markdown("---")
         
-        # Generate 3 variations with different approaches
+        # Generate 3 variations with enhanced diversity
         for i in range(3):
             try:
                 placeholder = placeholders[i] if streaming and i < len(placeholders) else None
                 
+                # Add small delay between generations to ensure different timestamps
+                if i > 0:
+                    time.sleep(0.2)
+                
                 response = self.generate_single_variation(
-                    data, i + 1, content_type, model, streaming, placeholder, max_retries=3
+                    data, i + 1, content_type, model, streaming, placeholder, max_retries=4
                 )
                 
                 if response and len(response.strip()) > 10:
@@ -306,93 +477,111 @@ class GroqContentGenerator:
                         "content": response,
                         "char_count": len(response),
                         "word_count": len(response.split()) if response else 0,
-                        "model_used": model
+                        "model_used": model,
+                        "generation_time": time.strftime("%H:%M:%S")
                     })
                 else:
-                    # Create fallback variation
-                    fallback_content = self._create_fallback_content(data, content_type, i + 1)
+                    # Create enhanced fallback variation
+                    fallback_content = self.prompt_builder.create_fallback_content(data, content_type, i + 1)
                     variations.append({
                         "variation": i + 1,
-                        "style": f"Fallback {i + 1}",
+                        "style": f"Fallback Style {i + 1}",
                         "content": fallback_content,
                         "char_count": len(fallback_content),
                         "word_count": len(fallback_content.split()),
-                        "model_used": model
+                        "model_used": model,
+                        "generation_time": time.strftime("%H:%M:%S")
                     })
                     
             except Exception as e:
                 st.error(f"Error in variation {i+1}: {str(e)}")
-                error_content = self._create_fallback_content(data, content_type, i + 1)
+                error_content = self.prompt_builder.create_fallback_content(data, content_type, i + 1)
                 variations.append({
                     "variation": i + 1,
-                    "style": f"Error - Variation {i + 1}",
+                    "style": f"Error Recovery {i + 1}",
                     "content": error_content,
                     "char_count": len(error_content),
                     "word_count": len(error_content.split()),
-                    "model_used": model
+                    "model_used": model,
+                    "generation_time": time.strftime("%H:%M:%S")
                 })
         
         return self._ensure_valid_variations(variations, model)
     
     def _get_variation_style_name(self, variation_number: int) -> str:
-        """Get descriptive style name for variation"""
+        """Get descriptive style name for variation with more variety"""
         styles = {
-            1: "Direct & Feature-Focused",
-            2: "Emotional & Question-Based", 
-            3: "Storytelling & Aspirational"
+            1: random.choice(["Direct & Bold", "Feature-Focused", "Quality-First", "Premium Approach"]),
+            2: random.choice(["Emotional & Personal", "Question-Driven", "Heart-Centered", "Connection-Based"]), 
+            3: random.choice(["Storytelling & Dreams", "Aspirational Lifestyle", "Narrative-Rich", "Vision-Focused"])
         }
-        return styles.get(variation_number, f"Variation {variation_number}")
+        return styles.get(variation_number, f"Creative Style {variation_number}")
     
     def _ensure_valid_variations(self, variations, model):
-        """Ensure all variations have required keys and valid content"""
+        """Enhanced variation validation and completion"""
         if not variations:
-            variations = [{
-                "variation": 1, 
-                "style": "Default", 
-                "content": "Generation failed - please try again", 
-                "char_count": 0,
-                "word_count": 0,
-                "model_used": model
-            }]
+            # Create emergency variations if completely failed
+            emergency_data = {"product": "Collection", "brand": "Premium", "fabric": "Quality"}
+            variations = []
+            for i in range(3):
+                content = self.prompt_builder.create_fallback_content(emergency_data, "General", i + 1)
+                variations.append({
+                    "variation": i + 1,
+                    "style": f"Emergency Style {i + 1}",
+                    "content": content,
+                    "char_count": len(content),
+                    "word_count": len(content.split()),
+                    "model_used": model,
+                    "generation_time": time.strftime("%H:%M:%S")
+                })
         
-        # Validate all variations have required keys
+        # Validate and fix each variation
         for i, var in enumerate(variations):
             if not isinstance(var, dict):
                 variations[i] = {
                     "variation": i + 1,
-                    "style": "Error",
-                    "content": "Invalid response format",
+                    "style": "Error Recovery",
+                    "content": "Generation failed - please try again",
                     "char_count": 0,
                     "word_count": 0,
-                    "model_used": model
+                    "model_used": model,
+                    "generation_time": time.strftime("%H:%M:%S")
                 }
             else:
                 # Ensure all required keys exist
-                required_keys = ["variation", "style", "content", "char_count", "word_count", "model_used"]
+                required_keys = ["variation", "style", "content", "char_count", "word_count", "model_used", "generation_time"]
                 for key in required_keys:
                     if key not in var:
                         if key == "variation":
                             var[key] = i + 1
                         elif key == "style":
-                            var[key] = "Unknown"
+                            var[key] = f"Style {i + 1}"
                         elif key == "content":
-                            var[key] = "No content"
+                            var[key] = "Content generation failed"
                         elif key == "char_count":
                             var[key] = len(var.get("content", ""))
                         elif key == "word_count":
                             var[key] = len(var.get("content", "").split()) if var.get("content") else 0
                         elif key == "model_used":
                             var[key] = model
+                        elif key == "generation_time":
+                            var[key] = time.strftime("%H:%M:%S")
         
         return variations
 
-# Rest of your Streamlit UI code remains the same...
+# Enhanced Streamlit UI with better state management
 st.set_page_config(
     page_title="AI Fashion Copywriter", 
     page_icon="✨", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Initialize session state for better state management
+if 'generation_count' not in st.session_state:
+    st.session_state.generation_count = 0
+if 'last_generation_time' not in st.session_state:
+    st.session_state.last_generation_time = 0
 
 # Check API key
 if not os.getenv("GROQ_API_KEY"):
@@ -406,14 +595,19 @@ if not os.getenv("GROQ_API_KEY"):
     """)
     st.stop()
 
-# Initialize generator
+# Initialize generator with state management
 @st.cache_resource
 def init_generator():
     return GroqContentGenerator()
 
+# Reset cache if needed for fresh generations
+def reset_generator():
+    st.cache_resource.clear()
+    return GroqContentGenerator()
+
 generator = init_generator()
 
-# Styling
+# Enhanced styling
 st.markdown("""
 <style>
     .main-title {
@@ -436,6 +630,11 @@ st.markdown("""
         transition: all 0.3s ease;
     }
     
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-2px);
+    }
+    
     .variation-card {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         padding: 1.8rem;
@@ -454,10 +653,18 @@ st.markdown("""
         text-align: center;
         margin: 0.5rem 0;
     }
+    
+    .generation-info {
+        background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+        padding: 0.5rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin: 0.5rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Constants
+# Constants (same as before)
 GARMENT_TYPES = [
     "Anarkali Palazzo Set", "Anarkali Set", "Angrakha", "Belt", "Bhanvara", "Blazer", 
     "Blazer Set", "Cap", "Choga", "Choga Set", "Co-Ord Set", "Cushion Cover", 
@@ -488,15 +695,24 @@ FABRIC_TYPES = [
 ]
 
 def display_variations(variations, data):
-    """Display variations in a structured format with enhanced readability"""
+    """Enhanced variation display with generation info"""
     if not variations or not variations[0].get('content'):
         st.error("No variations generated")
         return
     
-    # Single table with all variations
+    # Generation info
     st.markdown("### 🎯 Generated Variations")
     
-    # Create table data
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'<div class="generation-info">Generated at: {time.strftime("%H:%M:%S")}</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown(f'<div class="generation-info">Total Variations: {len(variations)}</div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div class="generation-info">Model: {variations[0].get("model_used", "Unknown")}</div>', unsafe_allow_html=True)
+    
+    # Single table with all variations
+    import pandas as pd
     table_data = []
     for i, variation in enumerate(variations):
         table_data.append({
@@ -505,23 +721,21 @@ def display_variations(variations, data):
             "Content": variation.get('content', 'No content'),
             "Characters": variation.get('char_count', 0),
             "Words": variation.get('word_count', 0),
-            "Model": variation.get('model_used', 'Unknown')
+            "Time": variation.get('generation_time', 'Unknown')
         })
     
-    # Display as dataframe
-    import pandas as pd
     df = pd.DataFrame(table_data)
     st.dataframe(
         df,
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Variation": st.column_config.TextColumn("Variation", width="small"),
+            "Variation": st.column_config.TextColumn("Var", width="small"),
             "Style": st.column_config.TextColumn("Style", width="medium"),
             "Content": st.column_config.TextColumn("Content", width="large"),
             "Characters": st.column_config.NumberColumn("Chars", width="small"),
             "Words": st.column_config.NumberColumn("Words", width="small"),
-            "Model": st.column_config.TextColumn("Model", width="medium")
+            "Time": st.column_config.TextColumn("Time", width="small")
         }
     )
     
@@ -538,22 +752,23 @@ def display_variations(variations, data):
                 st.code(variation.get("content", "No content"), language="text")
             with col2:
                 st.caption(f"🤖 {variation.get('model_used', 'Unknown')}")
+                st.caption(f"⏰ {variation.get('generation_time', 'Unknown')}")
                 st.download_button(
                     "📥 Download",
                     variation.get("content", "No content"),
                     f"{data.get('brand', 'content')}_{data['category']}_v{variation.get('variation', i+1)}.txt",
-                    key=f"download_{i}"
+                    key=f"download_{i}_{st.session_state.generation_count}"
                 )
 
 # Header
 st.markdown('<h1 class="main-title">✨ AI Fashion Copywriter</h1>', unsafe_allow_html=True)
-st.markdown("### Professional ad copy with multiple creative variations")
+st.markdown("### Professional ad copy with maximum creative diversity")
 
 # Model and streaming selection
 col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     model_options = {
-        "💡 Gemma2 9B": "gemma2-9b-it",
+        "💡 Gemma2 9B (Recommended)": "gemma2-9b-it",
         "⚡ Llama 3.1 8B (Fastest)": "llama-3.1-8b-instant"
     }
     selected_model_name = st.selectbox("🤖 AI Model", list(model_options.keys()))
@@ -561,6 +776,11 @@ with col1:
 
 with col2:
     enable_streaming = st.toggle("🎬 Live Streaming", help="Watch generation in real-time")
+
+with col3:
+    if st.button("🔄 Reset Generator"):
+        generator = reset_generator()
+        st.success("Generator reset! Fresh content incoming.")
 
 # Mode selection
 mode = st.radio(
